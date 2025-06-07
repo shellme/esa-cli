@@ -1,0 +1,73 @@
+---
+title: "よくある質問"
+description: "esa-cliに関するよくある質問と回答"
+---
+
+esa-cliに関するよくある質問と回答をまとめています。
+
+## インストール関連
+
+### Q: インストール時にエラーが発生しました
+A: 以下のコマンドで再インストールを試してください：
+```bash
+brew uninstall esa-cli
+brew install shellme/esa-cli
+```
+
+### Q: `esa-cli` コマンドが見つかりません
+A: 以下の点を確認してください：
+
+1. パスが正しく設定されているか確認
+```bash
+echo $PATH
+```
+
+2. `/usr/local/bin` がパスに含まれているか確認
+
+3. 使用しているシェルに応じて、以下の設定ファイルにパスを追加：
+
+- bashの場合（`~/.bashrc` または `~/.bash_profile`）:
+```bash
+export PATH="/usr/local/bin:$PATH"
+```
+
+- zshの場合（`~/.zshrc` または `~/.zprofile`）:
+```bash
+export PATH="/usr/local/bin:$PATH"
+```
+
+- fishの場合（`~/.config/fish/config.fish`）:
+```fish
+set -gx PATH /usr/local/bin $PATH
+```
+
+4. 設定を反映
+```bash
+# bashの場合
+source ~/.bashrc  # または source ~/.bash_profile
+
+# zshの場合
+source ~/.zshrc  # または source ~/.zprofile
+
+# fishの場合
+source ~/.config/fish/config.fish
+```
+
+## 設定関連
+
+### Q: アクセストークンが無効になりました
+A: 新しいトークンを生成し、`esa-cli setup` を再実行してください。
+
+## 操作関連
+
+### Q: 記事の更新が反映されません
+A: 以下の点を確認してください：
+- ファイル名が正しいか（記事番号-タイトル.md）
+- Front Matterの形式が正しいか
+- インターネット接続が安定しているか
+
+## 関連ドキュメント
+
+- [はじめに](/getting-started) - インストールと初期設定
+- [初期設定と基本操作](/getting-started/first-steps) - 基本的な使い方の詳細
+- [トラブルシューティング](/troubleshooting) - より詳細な問題解決ガイド 

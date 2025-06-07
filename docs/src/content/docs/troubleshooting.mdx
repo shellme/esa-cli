@@ -1,0 +1,179 @@
+---
+title: "トラブルシューティング"
+description: "esa-cliの問題解決ガイド"
+---
+
+esa-cliの使用中に発生する可能性のある問題と、その解決方法を詳しく説明します。
+
+## インストールの問題
+
+### インストールが完了しない
+
+#### 症状
+- `brew install` コマンドが失敗する
+- インストール中にエラーメッセージが表示される
+
+#### 解決手順
+
+1. 既存のインストールを削除
+```bash
+brew uninstall esa-cli
+```
+
+2. Homebrewのキャッシュをクリア
+```bash
+brew cleanup
+```
+
+3. 再インストール
+```bash
+brew install shellme/esa-cli
+```
+
+4. インストールの確認
+```bash
+esa-cli --version
+```
+
+### コマンドが見つからない
+
+#### 症状
+- `esa-cli` コマンドを実行すると「command not found」エラーが表示される
+
+#### 解決手順
+
+1. パスの確認
+```bash
+echo $PATH
+```
+
+2. バイナリの場所を確認
+```bash
+which esa-cli
+```
+
+3. シェルの設定ファイルにパスを追加
+
+bashの場合：
+```bash
+echo 'export PATH="/usr/local/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+zshの場合：
+```bash
+echo 'export PATH="/usr/local/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+fishの場合：
+```fish
+echo 'set -gx PATH /usr/local/bin $PATH' >> ~/.config/fish/config.fish
+source ~/.config/fish/config.fish
+```
+
+## 認証の問題
+
+### アクセストークンが無効
+
+#### 症状
+- コマンド実行時に認証エラーが発生
+- `esa-cli setup` で設定したトークンが機能しない
+
+#### 解決手順
+
+1. 現在の設定を確認
+```bash
+cat ~/.esa-cli-config.json
+```
+
+2. 新しいトークンを生成
+   - esa.ioのアプリケーション設定ページにアクセス
+   - 既存のトークンを削除
+   - 新しいトークンを生成
+
+3. 設定を更新
+```bash
+esa-cli setup
+```
+
+## 記事の操作に関する問題
+
+### 記事の更新が反映されない
+
+#### 症状
+- `esa-cli update` を実行しても記事が更新されない
+- エラーメッセージが表示される
+
+#### 解決手順
+
+1. ファイル名の確認
+   - 正しい形式: `記事番号-タイトル.md`
+   - 例: `123-my-article.md`
+
+2. Front Matterの確認
+```markdown
+---
+title: 記事のタイトル
+category: カテゴリ
+tags: [tag1, tag2]
+wip: false
+---
+```
+
+3. ネットワーク接続の確認
+```bash
+ping esa.io
+```
+
+4. 記事の存在確認
+```bash
+esa-cli list | grep 記事番号
+```
+
+### 記事のダウンロードに失敗
+
+#### 症状
+- `esa-cli fetch` で記事をダウンロードできない
+- ダウンロードしたファイルが破損している
+
+#### 解決手順
+
+1. 記事番号の確認
+```bash
+esa-cli list
+```
+
+2. 一時ファイルの削除
+```bash
+rm -f *-article-title.md
+```
+
+3. 再ダウンロード
+```bash
+esa-cli fetch 記事番号
+```
+
+## その他の問題
+
+### 通知が表示されない
+
+#### 症状
+- 記事のダウンロードや更新時に通知が表示されない
+
+#### 解決手順
+
+1. 通知の権限を確認
+   - システム環境設定 > 通知
+   - ターミナルの通知を許可
+
+2. 通知のテスト
+```bash
+esa-cli fetch 1
+```
+
+## 関連ドキュメント
+
+- [よくある質問](/faq) - 一般的な質問と回答
+- [初期設定と基本操作](/getting-started/first-steps) - 基本的な使い方
+- [コマンドリファレンス](/commands) - コマンドの詳細な説明 
