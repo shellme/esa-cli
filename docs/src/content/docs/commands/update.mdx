@@ -1,0 +1,84 @@
+---
+title: "記事更新"
+description: "esa.ioの記事を更新するコマンド"
+---
+
+esa.ioの記事を更新します。ローカルのMarkdownファイルを編集した後、このコマンドを使用して記事を更新できます。
+
+## 仕様
+
+### コマンド形式
+
+```bash
+esa-cli update <file_path>
+```
+
+### パラメータ
+
+- `file_path` - 更新するMarkdownファイルのパス（必須）
+
+### オプション
+
+- `--message` - 更新メッセージ（変更履歴に表示）
+- `--wip` - WIPとして更新（true/false）
+
+### ファイル名の規則
+
+更新対象のファイル名は以下の形式である必要があります：
+
+```
+<article_number>-<article-title>.md
+```
+
+### ファイル構造
+
+```markdown
+---
+title: 記事のタイトル
+category: カテゴリ
+tags: [tag1, tag2]
+wip: false
+---
+
+記事の本文...
+```
+
+## 使用例
+
+### 基本的な使用方法
+
+```bash
+# 記事を更新
+esa-cli update 123-article-title.md
+
+# 更新メッセージを指定
+esa-cli update 123-article-title.md --message "タイトルを更新"
+```
+
+### WIPの管理
+
+```bash
+# 記事をWIPとして更新
+esa-cli update 123-article-title.md --wip true
+
+# WIPを解除
+esa-cli update 123-article-title.md --wip false
+```
+
+### 一括更新
+
+```bash
+# 特定のカテゴリの記事を一括更新
+for file in *-*.md; do
+  if grep -q "category: 開発/ドキュメント" "$file"; then
+    esa-cli update "$file" --message "カテゴリを更新"
+  fi
+done
+```
+
+## 注意事項
+
+- ファイル名は `fetch` コマンドでダウンロードした形式を維持する必要があります
+- 記事番号はファイル名から自動的に抽出されます
+- メタデータ（タイトル、カテゴリ、タグ）はYAMLフロントマターから読み取られます
+- 更新メッセージは変更履歴に表示され、後から参照できます 

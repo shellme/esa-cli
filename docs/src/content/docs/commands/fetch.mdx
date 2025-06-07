@@ -1,0 +1,78 @@
+---
+title: "記事取得"
+description: "esa.ioの記事をダウンロードするコマンド"
+---
+
+esa.ioの記事をダウンロードします。記事はMarkdown形式で保存され、ファイル名は記事番号とタイトルから自動生成されます。
+
+## 仕様
+
+### コマンド形式
+
+```bash
+esa-cli fetch <article_number>
+```
+
+### パラメータ
+
+- `article_number` - ダウンロードする記事の番号（必須）
+
+### ファイル形式
+
+記事はMarkdown形式で保存され、以下の命名規則に従います：
+
+```
+<article_number>-<article-title>.md
+```
+
+### ファイル構造
+
+```markdown
+---
+title: 記事のタイトル
+category: カテゴリ
+tags: [tag1, tag2]
+wip: false
+---
+
+記事の本文...
+```
+
+## 使用例
+
+### 基本的な使用方法
+
+```bash
+# 記事番号123の記事をダウンロード
+esa-cli fetch 123
+```
+
+### 一括ダウンロード
+
+```bash
+# 最新の5件の記事をダウンロード
+esa-cli list 5 | grep -o '^\[[0-9]*\]' | tr -d '[]' | xargs -I {} esa-cli fetch {}
+
+# 特定のカテゴリの記事を一括ダウンロード
+esa-cli list --category "開発/ドキュメント" | grep -o '^\[[0-9]*\]' | tr -d '[]' | xargs -I {} esa-cli fetch {}
+```
+
+### バックアップ
+
+```bash
+# 特定の日付のバックアップディレクトリを作成
+DATE=$(date +%Y%m%d)
+BACKUP_DIR="./backup/$DATE"
+mkdir -p "$BACKUP_DIR"
+
+# 全記事をバックアップ
+esa-cli list | grep -o '^\[[0-9]*\]' | tr -d '[]' | xargs -I {} esa-cli fetch {}
+mv *-*.md "$BACKUP_DIR"
+```
+
+## 注意事項
+
+- 記事番号は `list` コマンドで確認できます
+- ファイル名に使用できない文字は自動的に置換されます
+- 同名のファイルが存在する場合は上書きされます
+- 記事のメタデータ（タイトル、カテゴリ、タグ）はYAMLフロントマターとして保存されます 

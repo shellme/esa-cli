@@ -20,27 +20,43 @@ export default defineConfig({
 				{
 					label: 'はじめに',
 					items: [
-						{
-							label: 'はじめに',
-							link: '/getting-started/'
-						}
+						{ label: 'はじめに', link: '/getting-started/' },
+						{ label: 'インストール', link: '/getting-started/installation' },
+						{ label: '初期設定と基本操作', link: '/getting-started/first-steps' },
 					]
 				},
 				{
 					label: 'ユーザーガイド',
-					autogenerate: { directory: 'guides' }
+					items: [
+						{ label: 'ガイド', link: '/guides/' },
+						{ label: '基本的な使い方', link: '/guides/basic-usage' },
+						{ label: '高度な使い方', link: '/guides/advanced-usage' },
+					]
+				},
+				{
+					label: 'コマンドリファレンス',
+					items: [
+						{ label: 'コマンド一覧', link: '/commands/' },
+						{ label: '初期設定', link: '/commands/setup' },
+						{ label: '記事一覧', link: '/commands/list' },
+						{ label: '記事取得', link: '/commands/fetch' },
+						{ label: '記事更新', link: '/commands/update' },
+					]
+				},
+				{
+					label: 'サポート',
+					items: [
+						{ label: 'よくある質問', link: '/faq' },
+						{ label: 'トラブルシューティング', link: '/troubleshooting' },
+					]
 				},
 				{
 					label: '開発者ガイド',
-					autogenerate: { directory: 'developer' }
-				},
-				{
-					label: 'APIリファレンス',
-					autogenerate: { directory: 'reference' }
-				},
-				{
-					label: 'サンプル',
-					autogenerate: { directory: 'examples' }
+					items: [
+						{ label: '開発者ガイド', link: '/developer/' },
+						{ label: 'リリース手順', link: '/developer/release' },
+						{ label: 'テスト', link: '/developer/test' },
+					]
 				}
 			],
 			editLink: {
