@@ -8,34 +8,34 @@ echo "=================================="
 # 管理者権限チェック（不要にする）
 echo "✅ 管理者権限は不要です"
 
-# Homebrewの確認・インストール
-if ! command -v brew &> /dev/null; then
-    echo "🍺 Homebrewをインストール中..."
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    
-    # PATHを更新
-    if [[ $(uname -m) == "arm64" ]]; then
-        echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
-        eval "$(/opt/homebrew/bin/brew shellenv)"
-    else
-        echo 'eval "$(/usr/local/bin/brew shellenv)"' >> ~/.zprofile  
-        eval "$(/usr/local/bin/brew shellenv)"
-    fi
+# アーキテクチャの判定
+ARCH=$(uname -m)
+if [[ "$ARCH" == "arm64" ]]; then
+    BINARY="esa-cli-darwin-arm64"
+    INSTALL_DIR="/opt/homebrew/bin"
+else
+    BINARY="esa-cli-darwin-amd64"
+    INSTALL_DIR="/usr/local/bin"
 fi
 
-# リポジトリをクローン
-echo "📦 esa-cliをインストール中..."
+# インストール先のディレクトリが存在しない場合は作成
+if [ ! -d "$INSTALL_DIR" ]; then
+    echo "📁 インストール先のディレクトリを作成中..."
+    sudo mkdir -p "$INSTALL_DIR"
+    sudo chown $(whoami) "$INSTALL_DIR"
+fi
+
+# バイナリのダウンロード
+echo "📦 esa-cliをダウンロード中..."
 TEMP_DIR=$(mktemp -d)
-git clone https://github.com/shellme/esa-cli.git "$TEMP_DIR"
 cd "$TEMP_DIR"
 
-# ビルド
-echo "🔨 ビルド中..."
-go build -o esa-cli ./cmd/esa-cli/main.go
+curl -L -o "$BINARY" "https://github.com/shellme/esa-cli/releases/latest/download/$BINARY"
+chmod +x "$BINARY"
 
 # インストール
 echo "📥 インストール中..."
-sudo mv esa-cli /usr/local/bin/
+mv "$BINARY" "$INSTALL_DIR/esa-cli"
 
 # クリーンアップ
 cd - > /dev/null
