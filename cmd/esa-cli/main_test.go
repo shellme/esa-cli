@@ -7,6 +7,7 @@ import (
 
 	"github.com/shellme/esa-cli/internal/api"
 	"github.com/shellme/esa-cli/internal/api/mock"
+	"github.com/shellme/esa-cli/internal/config"
 	"github.com/shellme/esa-cli/internal/testutil"
 )
 
@@ -64,9 +65,10 @@ func TestList(t *testing.T) {
 	// テスト用の設定ファイルを作成
 	configPath := testutil.CreateTestConfigFile(t, tmpDir)
 
-	// 設定ファイルのパスを環境変数に設定
-	os.Setenv("ESA_CLI_CONFIG", configPath)
-	defer os.Unsetenv("ESA_CLI_CONFIG")
+	// 設定ファイルのパスを設定
+	origConfigFile := config.ConfigFile
+	config.ConfigFile = configPath
+	defer func() { config.ConfigFile = origConfigFile }()
 
 	// モッククライアントを作成
 	mockClient := mock.NewMockHTTPClient()
