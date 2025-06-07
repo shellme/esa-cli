@@ -58,6 +58,12 @@ func TestVersion(t *testing.T) {
 }
 
 func TestList(t *testing.T) {
+	// テスト用の一時ディレクトリを作成
+	tmpDir := testutil.CreateTempDir(t)
+
+	// テスト用の設定ファイルを作成
+	testutil.CreateTestConfigFile(t, tmpDir)
+
 	// モッククライアントを作成
 	mockClient := mock.NewMockHTTPClient()
 
