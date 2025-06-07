@@ -16,10 +16,11 @@ esaの記事をローカルで作成・更新できるCLIツールです。
 
 ## インストール方法
 
-### 方法1: Homebrewでインストール（推奨）
+### 方法1: Homebrew（独自tap）でインストール（推奨）
 
 ```bash
-brew install shellme/esa-cli
+brew tap shellme/esa-cli
+brew install esa-cli
 ```
 
 ### 方法2: 直接バイナリをダウンロード
