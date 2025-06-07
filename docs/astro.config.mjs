@@ -2,9 +2,13 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 
+const isProd = process.env.NODE_ENV === 'production';
+const base = isProd ? '/esa-cli' : '';
+
 // https://astro.build/config
 export default defineConfig({
-	base: '/esa-cli',
+	site: 'https://shellme.github.io',
+	base: base,
 	integrations: [
 		starlight({
 			title: 'esa-cli',
@@ -67,7 +71,7 @@ export default defineConfig({
 					tag: 'link',
 					attrs: {
 						rel: 'icon',
-						href: '/favicon.ico'
+						href: '/esa-cli/favicon.ico'
 					}
 				}
 			]
