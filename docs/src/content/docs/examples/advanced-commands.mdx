@@ -34,6 +34,21 @@ esa-cli list --from "2024-01-01" --to "2024-03-31" | xargs -I{} esa-cli fetch {}
 # 特定のタグの記事を一括更新
 find . -name "*.md" -exec grep -l "API" {} \; | xargs -I{} esa-cli update {}
 
+# 特定のカテゴリの記事を一括更新
+esa-cli list --category "開発" | xargs -I{} esa-cli fetch {} && find . -name "*.md" | xargs -I{} esa-cli update {}
+
+# カテゴリごとのディレクトリ構造を作成して記事を保存
+esa-cli list --category "開発" | while read -r article; do
+    mkdir -p "開発"
+    esa-cli fetch "$article" --output "開発/"
+done
+
+# タグごとのディレクトリ構造を作成して記事を保存
+esa-cli list --tag "API" | while read -r article; do
+    mkdir -p "API"
+    esa-cli fetch "$article" --output "API/"
+done
+
 # 記事のバックアップを作成
 esa-cli list | xargs -I{} esa-cli fetch {} && tar czf esa-backup-$(date +%Y%m%d).tar.gz *.md
 
