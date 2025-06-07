@@ -122,6 +122,17 @@ func TestList(t *testing.T) {
 }
 
 func TestFetch(t *testing.T) {
+	// テスト用の一時ディレクトリを作成
+	tmpDir := testutil.CreateTempDir(t)
+
+	// テスト用の設定ファイルを作成
+	configPath := testutil.CreateTestConfigFile(t, tmpDir)
+
+	// 設定ファイルのパスを設定
+	origConfigFile := config.ConfigFile
+	config.ConfigFile = configPath
+	defer func() { config.ConfigFile = origConfigFile }()
+
 	// モッククライアントを作成
 	mockClient := mock.NewMockHTTPClient()
 
