@@ -61,29 +61,49 @@ esa-cliのリリースは以下の手順で行います。
    - チーム内での共有
    - 関連するIssueやPRのクローズ
 
-## 5. Homebrew Formulaの更新・公開
+## 5. Homebrew Formulaの独自tapでの公開
 
-1. Homebrew公式リポジトリ（Homebrew/homebrew-core）をforkし、ローカルにclone
-2. `Formula/esa-cli.rb` を新しいバージョン・SHA256で更新
+1. GitHubで独自tapリポジトリ（例: shellme/homebrew-esa-cli）を作成
+2. ローカルにclone
    ```bash
-   # 例: バイナリのSHA256を計算
-   shasum -a 256 esa-cli-darwin-universal.tar.gz
+   git clone https://github.com/shellme/homebrew-esa-cli.git
+   cd homebrew-esa-cli
    ```
-3. 変更をコミットし、forkリポジトリにpush
+3. Formulaファイル（esa-cli.rb）を作成し、バイナリ配布用に記述
+   ```ruby
+   class EsaCli < Formula
+     desc "CLI tool for managing esa.io articles"
+     homepage "https://github.com/shellme/esa-cli"
+     license "MIT"
+     version "x.y.z"
+     url "https://github.com/shellme/esa-cli/releases/download/vx.y.z/esa-cli-darwin-universal.tar.gz"
+     sha256 "(バイナリのSHA256)"
+
+     def install
+       bin.install "esa-cli"
+     end
+
+     test do
+       system "#{bin}/esa-cli", "version"
+     end
+   end
+   ```
+4. 変更をコミットし、リモートにpush
    ```bash
-   git add Formula/esa-cli.rb
-   git commit -m "esa-cli 0.1.1"
-   git push origin esa-cli-0.1.1
+   git add esa-cli.rb
+   git commit -m "esa-cli x.y.z (binary release)"
+   git push origin main
    ```
-4. Homebrew公式リポジトリへのPRを作成
-   - GitHubの「Compare across forks」から
-     - base: `Homebrew/homebrew-core` の `master`
-     - compare: `shellme/homebrew-core` の `esa-cli-0.1.1`
-   - PRタイトル・本文にはバージョン、主な変更点、テスト方法などを記載
-5. レビューやCIチェックに対応し、マージを待つ
+5. ユーザーへの案内例
+   ```bash
+   brew tap shellme/esa-cli
+   brew install esa-cli
+   ```
+6. バージョンアップ時はFormulaのversion, url, sha256を更新し、再度コミット＆プッシュ
 
 ## 注意事項
 
+- Homebrew公式(core)ではバイナリ配布はできません。独自tapでの配布が必要です。
 - セマンティックバージョニングに従ってバージョン番号を更新してください
 - リリース前に必ずテストを実行し、問題がないことを確認してください
 - リリースノートには、ユーザーにとって重要な変更点を記載してください 
