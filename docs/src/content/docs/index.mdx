@@ -3,6 +3,8 @@ title: "esa-cli ドキュメント"
 description: "esa-cliの公式ドキュメント"
 ---
 
+import { LinkCard, CardGrid } from '@astrojs/starlight/components';
+
 esa-cliは、esaの記事をローカルで作成・編集できるコマンドラインツールです。
 このドキュメントでは、esa-cliの使い方から開発方法まで、詳しく説明しています。
 
@@ -15,43 +17,28 @@ esa-cliは、esaの記事をローカルで作成・編集できるコマンド�
 
 ## ドキュメントの構成
 
-### 🚀 [はじめに](/getting-started)
-- インストール方法
-  - Homebrewでのインストール
-  - 直接バイナリのダウンロード
-  - ソースコードからのビルド
-- 初期設定
-- 基本的な使い方
-- よくある質問（FAQ）
-
-### 📖 [ユーザーガイド](/guides)
-- 記事の作成・編集
-- 記事の管理
-- カテゴリとタグの使い方
-- 便利な使い方
-  - Finderとの連携
-  - お気に入りエディタでの編集
-  - 通知機能
-  - Spotlight検索の活用
-- トラブルシューティング
-
-### 👨‍💻 [開発者ガイド](/developer)
-- プロジェクトの構造
-- 開発環境のセットアップ
-- テストの書き方
-- コントリビューションガイド
-- リリースプロセス
-
-### 📚 [APIリファレンス](/reference)
-- コマンド一覧
-- オプション一覧
-- 設定ファイルの仕様
-- プラグインAPI
-
-### 💡 [サンプル](/examples)
-- 基本的な使用例
-- 高度な使用例
-- ワークフロー例
+<CardGrid>
+  <LinkCard
+    title="はじめに"
+    href="/getting-started/"
+    description="インストール、初期設定、基本の使い方、よくある質問"
+  />
+  <LinkCard
+    title="ユーザーガイド"
+    href="/guides/"
+    description="記事の作成・編集・管理や便利な使い方"
+  />
+  <LinkCard
+    title="コマンドリファレンス"
+    href="/commands/"
+    description="esa-cliの各コマンドの詳細仕様"
+  />
+  <LinkCard
+    title="開発者ガイド"
+    href="/developer/"
+    description="開発・コントリビュート・リリース手順"
+  />
+</CardGrid>
 
 ## クイックリンク
 

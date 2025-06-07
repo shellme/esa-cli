@@ -1,0 +1,113 @@
+---
+title: "初期設定と基本操作"
+description: "esa-cliの初期設定と基本的な使い方"
+---
+
+esa-cliの初期設定と基本的な使い方を説明します。
+
+## 初期設定
+
+### 前提条件
+- esa-cliがインストールされていること
+- esa.ioのアカウントがあること
+- インターネット接続があること
+
+### 設定手順
+
+1. 初期設定を開始
+```bash
+esa-cli setup
+```
+
+2. チーム名（サブドメイン）を入力
+   - 例：`my-team`（URLが `https://my-team.esa.io` の場合）
+
+3. アクセストークンを生成
+   - `https://<your-team>.esa.io/user/applications` にアクセス
+   - 'Personal access tokens' セクションの 'Generate new token' をクリック
+   - Token description に 'esa-cli' と入力
+   - Scopes で 'read' と 'write' にチェック
+   - 'Generate token' をクリック
+   - 表示されたトークンをコピー
+
+4. アクセストークンを入力
+
+設定は `~/.esa-cli-config.json` に保存されます。
+
+## 基本的な使い方
+
+### 記事一覧の表示
+
+```bash
+# 最新10件の記事を表示
+esa-cli list
+
+# 表示件数を指定（例：20件）
+esa-cli list 20
+```
+
+### 記事のダウンロード
+
+```bash
+# 記事番号を指定してダウンロード
+esa-cli fetch 123
+```
+
+ダウンロードされたファイルは以下の形式で保存されます：
+```
+123-article-title.md
+```
+
+ファイルの内容：
+```markdown
+---
+title: 記事のタイトル
+category: カテゴリ
+tags: [tag1, tag2]
+wip: false
+---
+
+記事の本文...
+```
+
+### 記事の更新
+
+```bash
+# ローカルのMarkdownファイルから記事を更新
+esa-cli update 123-article-title.md
+```
+
+## 便利な使い方
+
+### Finderとの連携
+
+```bash
+# 記事をダウンロードしてFinderで開く
+esa-cli fetch 123 && open .
+```
+
+### お気に入りエディタで直接開く
+
+```bash
+# VS Codeで開く
+esa-cli fetch 123 && code 123-*.md
+
+# Typoraで開く
+esa-cli fetch 123 && open -a Typora 123-*.md
+```
+
+### 通知機能
+
+記事のダウンロードや更新が完了すると、macOSの通知が表示されます。
+
+### Spotlight検索の活用
+
+ダウンロードした記事には、Spotlight検索用のメタデータが自動的に追加されます。
+Finderの検索バーで記事のタイトルやカテゴリを検索できます。
+
+## 次のステップ
+
+- [コマンドリファレンス](/commands) - すべてのコマンドの詳細な説明
+- [設定ファイル](/configuration) - 設定ファイルの詳細な説明
+- [よくある質問](/faq) - よくある質問と回答
+- [トラブルシューティング](/troubleshooting) - 問題解決のガイド 

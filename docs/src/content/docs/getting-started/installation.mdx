@@ -1,0 +1,124 @@
+---
+title: "インストール"
+description: "esa-cliのインストール方法"
+---
+
+esa-cliは以下の3つの方法でインストールできます。最も簡単な方法はHomebrewを使用する方法です。
+
+## Homebrewを使用する場合（推奨）
+
+### 前提条件
+- macOS または Linux
+- Homebrewがインストールされていること
+
+### インストール手順
+
+```bash
+brew install shellme/esa-cli
+```
+
+### 動作確認
+
+インストールが成功したか確認するには：
+
+```bash
+esa-cli --version
+```
+
+## 直接バイナリをダウンロード
+
+### 前提条件
+- macOS または Linux
+- インターネット接続
+
+### インストール手順
+
+1. [GitHubのリリースページ](https://github.com/shellme/esa-cli/releases)から最新のリリースをダウンロード
+
+2. お使いのOSに合わせて適切なバイナリを選択：
+   - macOS (Intel): `esa-cli-darwin-amd64`
+   - macOS (Apple Silicon): `esa-cli-darwin-arm64`
+   - Linux (Intel): `esa-cli-linux-amd64`
+   - Linux (ARM): `esa-cli-linux-arm64`
+
+3. ダウンロードしたバイナリを実行可能にして、パスの通ったディレクトリに移動
+
+```bash
+# macOS (Apple Silicon) の場合
+curl -L -o esa-cli https://github.com/shellme/esa-cli/releases/latest/download/esa-cli-darwin-arm64
+chmod +x esa-cli
+sudo mv esa-cli /usr/local/bin/
+```
+
+## ソースコードからビルド
+
+### 前提条件
+- Go 1.16以上
+- Git
+- ビルドツール
+
+### インストール手順
+
+1. リポジトリをクローン
+```bash
+git clone https://github.com/shellme/esa-cli.git
+cd esa-cli
+```
+
+2. ビルド
+```bash
+go build -o esa-cli
+```
+
+3. ビルドしたバイナリをパスの通ったディレクトリに移動
+```bash
+sudo mv esa-cli /usr/local/bin/
+```
+
+## トラブルシューティング
+
+### インストール時のエラー
+
+インストール時にエラーが発生した場合は、以下の手順を試してください：
+
+1. 既存のインストールを削除
+```bash
+brew uninstall esa-cli
+```
+
+2. 再インストール
+```bash
+brew install shellme/esa-cli
+```
+
+### コマンドが見つからない場合
+
+`esa-cli` コマンドが見つからない場合は、以下を確認してください：
+
+1. パスが正しく設定されているか確認
+```bash
+echo $PATH
+```
+
+2. `/usr/local/bin` がパスに含まれているか確認
+
+3. 必要に応じて、使用しているシェルの設定ファイルにパスを追加：
+
+- bashの場合（`~/.bashrc` または `~/.bash_profile`）:
+```bash
+export PATH="/usr/local/bin:$PATH"
+```
+
+- zshの場合（`~/.zshrc` または `~/.zprofile`）:
+```bash
+export PATH="/usr/local/bin:$PATH"
+```
+
+- fishの場合（`~/.config/fish/config.fish`）:
+```fish
+set -gx PATH /usr/local/bin $PATH
+```
+
+## 次のステップ
+
+インストールが完了したら、[はじめの一歩](/getting-started/first-steps)に進んで初期設定を行いましょう。 
