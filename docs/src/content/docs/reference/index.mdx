@@ -1,6 +1,6 @@
 ---
-title: "APIリファレンス"
-description: "esa-cliのコマンドと設定のリファレンス"
+title: "コマンドリファレンス"
+description: "esa-cliのコマンドと設定の詳細なリファレンス"
 ---
 
 esa-cliのコマンドと設定の詳細なリファレンスです。
@@ -31,19 +31,20 @@ esa-cli list [count]
 - `count` - 表示する記事数（デフォルト: 10）
 - `--category` - カテゴリでフィルタ
 - `--tag` - タグでフィルタ
-- `--search` - 検索キーワード
+- `--query` - 検索キーワード
 
 ### `esa-cli fetch`
 
-記事をダウンロードします。
+記事をダウンロードします。記事はMarkdown形式でカレントディレクトリに保存されます。
 
 ```bash
 esa-cli fetch <article_number>
 ```
 
-#### オプション
-- `--output` - 出力ディレクトリを指定
-- `--format` - 出力形式を指定（md, html）
+ダウンロードされたファイルは以下の形式で保存されます：
+```
+<article_number>-<article-title>.md
+```
 
 ### `esa-cli update`
 
@@ -59,29 +60,21 @@ esa-cli update <file_path>
 
 ## 設定ファイル
 
-設定ファイルは `~/.esa-cli/config.json` に保存されます。
+設定ファイルは `~/.esa-cli-config.json` に保存されます。
 
 ### 設定項目
 
 ```json
 {
-  "team": "your-team",
-  "token": "your-token",
-  "editor": "code",
-  "defaultCategory": "docs",
-  "defaultTags": ["documentation"],
-  "notifications": true
+  "team_name": "your-team-name",
+  "access_token": "your-token"
 }
 ```
 
 #### 設定項目の説明
 
-- `team` - esaのチーム名（サブドメイン）
-- `token` - esaのアクセストークン
-- `editor` - デフォルトのエディタ
-- `defaultCategory` - デフォルトのカテゴリ
-- `defaultTags` - デフォルトのタグ
-- `notifications` - 通知の有効/無効
+- `team_name` - esaのチーム名（サブドメイン）
+- `access_token` - esaのアクセストークン
 
 ## 環境変数
 
@@ -89,8 +82,6 @@ esa-cli update <file_path>
 
 - `ESA_TEAM` - チーム名
 - `ESA_TOKEN` - アクセストークン
-- `ESA_EDITOR` - エディタ
-- `ESA_CONFIG_PATH` - 設定ファイルのパス
 
 ## エラーコード
 
@@ -98,61 +89,4 @@ esa-cli update <file_path>
 - `E002` - アクセストークンが無効です
 - `E003` - 記事が見つかりません
 - `E004` - ファイルの形式が不正です
-- `E005` - ネットワークエラー
-
-## プラグインAPI
-
-esa-cliはプラグインシステムをサポートしています。
-
-### プラグインの基本構造
-
-```typescript
-interface EsaCliPlugin {
-  name: string;
-  version: string;
-  commands: Command[];
-  hooks: {
-    preCommand?: (command: string, args: string[]) => Promise<void>;
-    postCommand?: (command: string, args: string[]) => Promise<void>;
-  };
-}
-```
-
-### プラグインの実装例
-
-```typescript
-const plugin: EsaCliPlugin = {
-  name: 'my-plugin',
-  version: '1.0.0',
-  commands: [
-    {
-      name: 'custom',
-      description: 'カスタムコマンド',
-      action: async (args: string[]) => {
-        // コマンドの実装
-      }
-    }
-  ],
-  hooks: {
-    preCommand: async (command, args) => {
-      // コマンド実行前の処理
-    }
-  }
-};
-```
-
-### プラグインの設定
-
-```json
-{
-  "plugins": [
-    {
-      "name": "my-plugin",
-      "enabled": true,
-      "config": {
-        "key": "value"
-      }
-    }
-  ]
-}
-``` 
+- `E005` - ネットワークエラー 
