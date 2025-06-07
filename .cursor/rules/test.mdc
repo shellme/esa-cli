@@ -1,0 +1,283 @@
+---
+description: 
+globs: *.go
+alwaysApply: false
+---
+# esa-cli テストルール
+
+## テストの基本方針
+
+1. 標準の`testing`パッケージを使用
+2. 各テストは独立して実行可能
+3. テストデータは適切にクリーンアップ
+
+## テストの構造
+
+```go
+// テストの構造は「Given-When-Then」の考え方に基づく
+func Test機能名(t *testing.T) {
+    // Given: テストの前提条件を記述
+    tests := []struct {
+        name    string
+        setup   func() // 前提条件のセットアップ
+        input   interface{}
+        want    interface{}
+        wantErr bool
+    }{
+        {
+            name: "正常系：記事一覧を取得できる",
+            setup: func() {
+                // テストの前提条件をセットアップ
+            },
+            input:   "入力値",
+            want:    "期待値",
+            wantErr: false,
+        },
+        {
+            name: "異常系：無効なトークンの場合はエラーを返す",
+            setup: func() {
+                // エラーケースの前提条件をセットアップ
+            },
+            input:   "不正な入力",
+            want:    nil,
+            wantErr: true,
+        },
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            // Given: 前提条件のセットアップ
+            if tt.setup != nil {
+                tt.setup()
+            }
+
+            // When: テスト対象の関数を実行
+            got, err := テスト対象の関数(tt.input)
+
+            // Then: 結果の検証
+            if (err != nil) != tt.wantErr {
+                t.Errorf("関数名() error = %v, wantErr %v", err, tt.wantErr)
+                return
+            }
+            if !reflect.DeepEqual(got, tt.want) {
+                t.Errorf("関数名() = %v, want %v", got, tt.want)
+            }
+        })
+    }
+}
+```
+
+## テストの命名規則
+
+- テストファイル: `{テスト対象ファイル名}_test.go`
+- テスト関数: `Test{機能名}`
+- サブテスト: 以下の形式で記述
+  - 正常系: `正常系：{期待される動作}`
+  - 異常系: `異常系：{エラー時の動作}`
+  - エッジケース: `エッジケース：{特殊な条件}`
+  - 境界値: `境界値：{境界条件}`
+
+## テストケースの構造
+
+各テストケースは以下の要素を含む：
+
+1. **Given（前提条件）**
+   - テストの初期状態
+   - 必要なモックやスタブ
+   - テストデータの準備
+
+2. **When（実行）**
+   - テスト対象の関数呼び出し
+   - 入力パラメータの設定
+
+3. **Then（検証）**
+   - 期待される結果の検証
+   - エラー条件の検証
+   - 副作用の検証
+
+## テストの例
+
+```go
+func TestListPosts(t *testing.T) {
+    tests := []struct {
+        name    string
+        setup   func(*Client)
+        options *ListPostsOptions
+        want    []Post
+        wantErr bool
+    }{
+        {
+            name: "正常系：記事一覧を取得できる",
+            setup: func(c *Client) {
+                // Given: モックの設定
+                c.SetMockResponse(200, `{"posts": [...]}`)
+            },
+            options: &ListPostsOptions{Limit: 10},
+            want:    []Post{...},
+            wantErr: false,
+        },
+        {
+            name: "異常系：APIエラーの場合はエラーを返す",
+            setup: func(c *Client) {
+                // Given: エラーを返すモックの設定
+                c.SetMockResponse(500, `{"error": "Internal Server Error"}`)
+            },
+            options: &ListPostsOptions{Limit: 10},
+            want:    nil,
+            wantErr: true,
+        },
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            // Given: クライアントの準備
+            client := NewClient("test-team", "test-token", mockClient)
+            if tt.setup != nil {
+                tt.setup(client)
+            }
+
+            // When: 記事一覧の取得
+            posts, err := client.ListPosts(context.Background(), tt.options)
+
+            // Then: 結果の検証
+            if (err != nil) != tt.wantErr {
+                t.Errorf("ListPosts() error = %v, wantErr %v", err, tt.wantErr)
+                return
+            }
+            if !reflect.DeepEqual(posts, tt.want) {
+                t.Errorf("ListPosts() = %v, want %v", posts, tt.want)
+            }
+        })
+    }
+}
+```
+
+## テストカバレッジ
+
+- 最低80%のカバレッジを維持
+- 重要な機能は100%カバレッジを目指す
+- カバレッジレポートは`coverage.out`に出力
+
+## テストの命名規則
+
+- テストファイル: `{テスト対象ファイル名}_test.go`
+- テスト関数: `Test{機能名}`
+- サブテスト: 動作を説明する自然な文
+
+## モックの使用
+
+- 外部依存（API等）は必ずモック化
+- モックは`internal/mocks`ディレクトリに配置
+- モックはインターフェースベースで実装
+
+## テストデータ
+
+- テストデータは`internal/testutil`に配置
+- 一時ファイルは`os.TempDir()`を使用
+- テストデータは適切にクリーンアップ
+
+## 並行テスト
+
+- 並行テストは`t.Parallel()`を使用
+- 並行テストは適切に同期を取る
+- 並行テストは適切にエラーハンドリング
+
+## テストの実行
+
+```bash
+# 全テストの実行
+go test ./...
+
+# 特定のパッケージのテスト
+go test ./internal/api
+
+# カバレッジレポートの生成
+go test -coverprofile=coverage.out ./...
+go tool cover -html=coverage.out
+```
+
+## テストの品質基準
+
+1. テストは独立して実行可能
+2. テストは再現可能
+3. テストは高速に実行可能
+4. テストは適切にエラーメッセージを出力
+5. テストは適切にログを出力
+
+## テストの追加基準
+
+1. 新機能追加時は必ずテストを追加
+2. バグ修正時は必ずテストを追加
+3. リファクタリング時は既存のテストを維持
+4. テストの追加は機能の実装前に行う
+
+## テストのレビュー基準
+
+1. テストの意図が明確か
+2. テストの構造が適切か
+3. テストのカバレッジは十分か
+4. テストの実行時間は適切か
+5. テストのエラーメッセージは分かりやすいか
+
+## テストヘルパー
+
+```go
+// internal/testutil/helper.go
+package testutil
+
+import (
+    "os"
+    "path/filepath"
+    "testing"
+)
+
+// テスト用の一時ディレクトリを作成
+func CreateTempDir(t *testing.T) string {
+    t.Helper()
+    dir, err := os.MkdirTemp("", "esa-cli-test-*")
+    if err != nil {
+        t.Fatal(err)
+    }
+    t.Cleanup(func() {
+        os.RemoveAll(dir)
+    })
+    return dir
+}
+
+// テスト用の記事データを作成
+func CreateTestPost(t *testing.T) string {
+    t.Helper()
+    return `---
+title: テスト記事
+category: test
+tags: [test]
+wip: false
+---
+
+テスト本文
+`
+}
+```
+
+## エラーメッセージの形式
+
+```go
+// 良い例
+t.Errorf("ListPosts() error = %v, wantErr %v", err, tt.wantErr)
+t.Errorf("ListPosts() = %v, want %v", got, tt.want)
+
+// 避けるべき例
+t.Error("テスト失敗")
+t.Fatal("エラー発生")
+```
+
+## テストのベストプラクティス
+
+1. テストは小さく、焦点を絞る
+2. テストは高速に実行できるようにする
+3. テストは環境に依存しない
+4. テストは適切にモックを使用する
+5. テストは適切にエラーハンドリングを行う
+6. テストの意図が明確になるように記述する
+7. テストは再現可能であること
+8. テストは保守可能であること

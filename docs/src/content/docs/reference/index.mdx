@@ -1,0 +1,158 @@
+---
+title: "APIリファレンス"
+description: "esa-cliのコマンドと設定のリファレンス"
+---
+
+esa-cliのコマンドと設定の詳細なリファレンスです。
+
+## コマンド一覧
+
+### `esa-cli setup`
+
+初期設定を行います。
+
+```bash
+esa-cli setup
+```
+
+#### オプション
+- `--team` - チーム名を指定
+- `--token` - アクセストークンを指定
+
+### `esa-cli list`
+
+記事一覧を表示します。
+
+```bash
+esa-cli list [count]
+```
+
+#### オプション
+- `count` - 表示する記事数（デフォルト: 10）
+- `--category` - カテゴリでフィルタ
+- `--tag` - タグでフィルタ
+- `--search` - 検索キーワード
+
+### `esa-cli fetch`
+
+記事をダウンロードします。
+
+```bash
+esa-cli fetch <article_number>
+```
+
+#### オプション
+- `--output` - 出力ディレクトリを指定
+- `--format` - 出力形式を指定（md, html）
+
+### `esa-cli update`
+
+記事を更新します。
+
+```bash
+esa-cli update <file_path>
+```
+
+#### オプション
+- `--message` - 更新メッセージ
+- `--wip` - WIPとして更新
+
+## 設定ファイル
+
+設定ファイルは `~/.esa-cli/config.json` に保存されます。
+
+### 設定項目
+
+```json
+{
+  "team": "your-team",
+  "token": "your-token",
+  "editor": "code",
+  "defaultCategory": "docs",
+  "defaultTags": ["documentation"],
+  "notifications": true
+}
+```
+
+#### 設定項目の説明
+
+- `team` - esaのチーム名（サブドメイン）
+- `token` - esaのアクセストークン
+- `editor` - デフォルトのエディタ
+- `defaultCategory` - デフォルトのカテゴリ
+- `defaultTags` - デフォルトのタグ
+- `notifications` - 通知の有効/無効
+
+## 環境変数
+
+以下の環境変数を使用できます：
+
+- `ESA_TEAM` - チーム名
+- `ESA_TOKEN` - アクセストークン
+- `ESA_EDITOR` - エディタ
+- `ESA_CONFIG_PATH` - 設定ファイルのパス
+
+## エラーコード
+
+- `E001` - 設定ファイルが見つかりません
+- `E002` - アクセストークンが無効です
+- `E003` - 記事が見つかりません
+- `E004` - ファイルの形式が不正です
+- `E005` - ネットワークエラー
+
+## プラグインAPI
+
+esa-cliはプラグインシステムをサポートしています。
+
+### プラグインの基本構造
+
+```typescript
+interface EsaCliPlugin {
+  name: string;
+  version: string;
+  commands: Command[];
+  hooks: {
+    preCommand?: (command: string, args: string[]) => Promise<void>;
+    postCommand?: (command: string, args: string[]) => Promise<void>;
+  };
+}
+```
+
+### プラグインの実装例
+
+```typescript
+const plugin: EsaCliPlugin = {
+  name: 'my-plugin',
+  version: '1.0.0',
+  commands: [
+    {
+      name: 'custom',
+      description: 'カスタムコマンド',
+      action: async (args: string[]) => {
+        // コマンドの実装
+      }
+    }
+  ],
+  hooks: {
+    preCommand: async (command, args) => {
+      // コマンド実行前の処理
+    }
+  }
+};
+```
+
+### プラグインの設定
+
+```json
+{
+  "plugins": [
+    {
+      "name": "my-plugin",
+      "enabled": true,
+      "config": {
+        "key": "value"
+      }
+    }
+  ]
+}
+``` 

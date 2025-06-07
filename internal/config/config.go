@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-
-	"github.com/shellme/esa-cli/internal/api"
 )
 
 type Config struct {
@@ -14,8 +12,17 @@ type Config struct {
 	TeamName    string `json:"team_name"`
 }
 
+// 設定ファイルのパス
+var (
+	ConfigDir  string
+	ConfigFile string
+)
+
 // 設定ファイルのパスを取得
 func getConfigPath() string {
+	if ConfigFile != "" {
+		return ConfigFile
+	}
 	homeDir, _ := os.UserHomeDir()
 	return filepath.Join(homeDir, ".esa-cli-config.json")
 }
@@ -24,7 +31,7 @@ func getConfigPath() string {
 func Load() (*Config, error) {
 	configPath := getConfigPath()
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		return &Config{}, nil
+		return nil, fmt.Errorf("設定ファイルが見つかりません: %s", configPath)
 	}
 
 	data, err := os.ReadFile(configPath)
@@ -42,6 +49,10 @@ func Load() (*Config, error) {
 
 // 設定を保存
 func Save(config *Config) error {
+	if config == nil {
+		return fmt.Errorf("設定がnilです")
+	}
+
 	data, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
 		return err
@@ -83,9 +94,10 @@ func Setup(client APIClient) error {
 	fmt.Println("")
 	fmt.Println("🧪 設定をテスト中...")
 
-	// 新しいクライアントを作成してテスト
-	testClient := api.NewClient(config.AccessToken, config.TeamName)
-	if err := testClient.TestConnection(); err != nil {
+	if client == nil {
+		return fmt.Errorf("APIクライアントがnilです")
+	}
+	if err := client.TestConnection(); err != nil {
 		return fmt.Errorf("接続テストに失敗しました: %v\n\nトークンやチーム名を確認してください", err)
 	}
 

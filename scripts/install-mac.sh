@@ -2,7 +2,7 @@
 
 set -e
 
-echo "🍎 esa-cli for Mac - インストーラー"
+echo "🐣 esa-cli for Mac - インストーラー"
 echo "=================================="
 
 # 管理者権限チェック（不要にする）

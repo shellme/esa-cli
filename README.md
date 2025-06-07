@@ -1,4 +1,4 @@
-# 🍎 esa-cli
+# 🐣 esa-cli
 
 esaの記事をローカルで作成・更新できるCLIツールです。
 
@@ -22,10 +22,86 @@ esaの記事をローカルで作成・更新できるCLIツールです。
 brew install shellme/esa-cli
 ```
 
-### 方法2: ワンライナーでインストール
+### 方法2: 直接バイナリをダウンロード
+
+1. [GitHubのリリースページ](https://github.com/shellme/esa-cli/releases)から最新のリリースをダウンロード
+2. お使いのOSに合わせて適切なバイナリを選択
+   - macOS (Intel): `esa-cli-darwin-amd64`
+   - macOS (Apple Silicon): `esa-cli-darwin-arm64`
+   - Linux (Intel): `esa-cli-linux-amd64`
+   - Linux (ARM): `esa-cli-linux-arm64`
+3. ダウンロードしたバイナリを実行可能にして、パスの通ったディレクトリに移動
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/shellme/esa-cli/main/scripts/install-mac.sh | bash
+# macOS (Apple Silicon) の場合
+curl -L -o esa-cli https://github.com/shellme/esa-cli/releases/latest/download/esa-cli-darwin-arm64
+chmod +x esa-cli
+sudo mv esa-cli /usr/local/bin/
+```
+
+#### macOSでの追加設定
+
+macOSでは、デフォルトのシェルがzshであるため、以下の設定が必要な場合があります：
+
+1. パスの確認
+```bash
+echo $PATH
+```
+
+2. 必要に応じて、`~/.zshrc` または `~/.zprofile` に以下を追加
+```bash
+export PATH="/usr/local/bin:$PATH"
+```
+
+3. 設定の反映
+```bash
+source ~/.zshrc  # または source ~/.zprofile
+```
+
+4. インストールの確認
+```bash
+which esa-cli
+```
+
+#### fishシェルを使用している場合
+
+fishシェルを使用している場合は、以下の手順で設定を行ってください：
+
+1. パスの確認
+```fish
+echo $PATH
+```
+
+2. 必要に応じて、`~/.config/fish/config.fish` に以下を追加
+```fish
+set -gx PATH /usr/local/bin $PATH
+```
+
+3. 設定の反映
+```fish
+source ~/.config/fish/config.fish
+```
+
+4. インストールの確認
+```fish
+which esa-cli
+```
+
+### 方法3: ソースコードからビルド
+
+1. Go 1.16以上をインストール
+2. リポジトリをクローン
+```bash
+git clone https://github.com/shellme/esa-cli.git
+cd esa-cli
+```
+3. ビルド
+```bash
+go build -o esa-cli
+```
+4. ビルドしたバイナリをパスの通ったディレクトリに移動
+```bash
+sudo mv esa-cli /usr/local/bin/
 ```
 
 ## 初期設定
@@ -146,6 +222,45 @@ A: 以下の点を確認してください：
 
 Q: アクセストークンが無効になりました
 A: 新しいトークンを生成し、`esa-cli setup` を再実行してください。
+
+Q: `esa-cli` コマンドが見つかりません
+A: 以下の点を確認してください：
+
+1. パスが正しく設定されているか確認
+```bash
+echo $PATH
+```
+
+2. `/usr/local/bin` がパスに含まれているか確認
+
+3. 使用しているシェルに応じて、以下の設定ファイルにパスを追加：
+
+- bashの場合（`~/.bashrc` または `~/.bash_profile`）:
+```bash
+export PATH="/usr/local/bin:$PATH"
+```
+
+- zshの場合（`~/.zshrc` または `~/.zprofile`）:
+```bash
+export PATH="/usr/local/bin:$PATH"
+```
+
+- fishの場合（`~/.config/fish/config.fish`）:
+```fish
+set -gx PATH /usr/local/bin $PATH
+```
+
+4. 設定を反映
+```bash
+# bashの場合
+source ~/.bashrc  # または source ~/.bash_profile
+
+# zshの場合
+source ~/.zshrc  # または source ~/.zprofile
+
+# fishの場合
+source ~/.config/fish/config.fish
+```
 
 ### サポート
 

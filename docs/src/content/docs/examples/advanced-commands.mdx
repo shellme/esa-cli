@@ -1,0 +1,124 @@
+---
+title: "高度なコマンド例"
+description: "esa-cliの高度なコマンド使用例と便利な組み合わせ"
+---
+
+## 便利な組み合わせ例
+
+```bash
+# 記事をダウンロードしてVS Codeで開く
+esa-cli fetch 123 && code 123-*.md
+
+# 記事をダウンロードしてFinderで開く
+esa-cli fetch 123 && open .
+
+# 記事をダウンロードしてTyporaで開く
+esa-cli fetch 123 && open -a Typora 123-*.md
+
+# 最新の記事をダウンロードして開く
+esa-cli fetch --latest && code $(ls -t *.md | head -n1)
+
+# 特定のカテゴリの最新記事をダウンロードして開く
+esa-cli fetch --category "開発" --latest && code $(ls -t *.md | head -n1)
+
+# 記事を更新して通知を表示
+esa-cli update 123-article-title.md && osascript -e 'display notification "記事を更新しました" with title "esa-cli"'
+```
+
+## 一括処理の例
+
+```bash
+# 特定の期間の記事を一括ダウンロード
+esa-cli list --from "2024-01-01" --to "2024-03-31" | xargs -I{} esa-cli fetch {}
+
+# 特定のタグの記事を一括更新
+find . -name "*.md" -exec grep -l "API" {} \; | xargs -I{} esa-cli update {}
+
+# 記事のバックアップを作成
+esa-cli list | xargs -I{} esa-cli fetch {} && tar czf esa-backup-$(date +%Y%m%d).tar.gz *.md
+
+# 特定のカテゴリの記事を別のカテゴリに移動
+esa-cli list --category "古いカテゴリ" | xargs -I{} esa-cli update {} --category "新しいカテゴリ"
+
+# 記事の更新履歴を確認
+esa-cli list --query "更新" --from "2024-01-01" --to "2024-03-31"
+```
+
+## シェルスクリプトの例
+
+### 記事の一括バックアップ
+
+```bash
+#!/bin/bash
+
+# バックアップディレクトリの作成
+BACKUP_DIR="esa-backup-$(date +%Y%m%d)"
+mkdir -p "$BACKUP_DIR"
+
+# 記事の一括ダウンロード
+esa-cli list | while read -r article; do
+    esa-cli fetch "$article"
+done
+
+# 記事の圧縮
+tar czf "$BACKUP_DIR.tar.gz" *.md
+
+# 一時ファイルの削除
+rm *.md
+
+echo "バックアップが完了しました: $BACKUP_DIR.tar.gz"
+```
+
+### カテゴリの一括移動
+
+```bash
+#!/bin/bash
+
+# 引数の確認
+if [ $# -ne 2 ]; then
+    echo "使用方法: $0 <元のカテゴリ> <新しいカテゴリ>"
+    exit 1
+fi
+
+OLD_CATEGORY="$1"
+NEW_CATEGORY="$2"
+
+# カテゴリの移動
+esa-cli list --category "$OLD_CATEGORY" | while read -r article; do
+    esa-cli update "$article" --category "$NEW_CATEGORY"
+    echo "移動完了: $article"
+done
+
+echo "カテゴリの移動が完了しました"
+```
+
+### 記事の定期バックアップ
+
+```bash
+#!/bin/bash
+
+# バックアップディレクトリの作成
+BACKUP_DIR="$HOME/esa-backups"
+mkdir -p "$BACKUP_DIR"
+
+# 日付を取得
+DATE=$(date +%Y%m%d)
+
+# 記事の一括ダウンロード
+esa-cli list | while read -r article; do
+    esa-cli fetch "$article"
+done
+
+# 記事の圧縮
+tar czf "$BACKUP_DIR/esa-backup-$DATE.tar.gz" *.md
+
+# 古いバックアップの削除（30日以上前のもの）
+find "$BACKUP_DIR" -name "esa-backup-*.tar.gz" -mtime +30 -delete
+
+# 一時ファイルの削除
+rm *.md
+
+echo "バックアップが完了しました: $BACKUP_DIR/esa-backup-$DATE.tar.gz"
+```
+
+これらのスクリプトは、必要に応じてカスタマイズして使用できます。例えば、cronジョブとして設定することで、定期的なバックアップを自動化することも可能です。 

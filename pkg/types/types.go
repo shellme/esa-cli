@@ -1,16 +1,14 @@
 package types
 
-// Post esaの記事を表す構造体
+// Post 記事の型定義
 type Post struct {
-	Number       int      `json:"number"`
-	Name         string   `json:"name"`
-	BodyMd       string   `json:"body_md"`
-	Category     string   `json:"category"`
-	Tags         []string `json:"tags"`
-	WIP          bool     `json:"wip"`
-	Message      string   `json:"message"`
-	FullName     string   `json:"full_name"`
-	UpdatedAt    string   `json:"updated_at"`
+	Number   int      `json:"number"`
+	Name     string   `json:"name"`
+	FullName string   `json:"full_name"`
+	Category string   `json:"category"`
+	Tags     []string `json:"tags"`
+	Wip      bool     `json:"wip"`
+	BodyMD   string   `json:"body_md"`
 }
 
 // PostResponse APIレスポンス用の構造体
@@ -21,4 +19,4 @@ type PostResponse struct {
 // PostRequest APIリクエスト用の構造体
 type PostRequest struct {
 	Post Post `json:"post"`
-} 
+}

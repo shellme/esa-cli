@@ -1,0 +1,67 @@
+---
+title: "基本的なコマンド例"
+description: "esa-cliの基本的なコマンド使用例"
+---
+
+## 記事の一覧表示
+
+```bash
+# 最新10件の記事を表示
+esa-cli list
+
+# 最新20件の記事を表示
+esa-cli list 20
+
+# 特定のカテゴリの記事を表示
+esa-cli list --category "開発"
+
+# 特定のタグが付いた記事を表示
+esa-cli list --tag "ドキュメント"
+
+# 検索ワードを含む記事を表示
+esa-cli list --query "API"
+
+# 複数の条件を組み合わせる
+esa-cli list --category "開発" --tag "API" --query "認証"
+```
+
+## 記事のダウンロード
+
+```bash
+# 記事番号を指定してダウンロード
+esa-cli fetch 123
+
+# 記事番号とタイトルを指定してダウンロード
+esa-cli fetch 123 "API仕様書"
+
+# 特定のカテゴリの最新記事をダウンロード
+esa-cli fetch --category "開発" --latest
+
+# 特定のタグが付いた記事をダウンロード
+esa-cli fetch --tag "API" --latest
+
+# 検索ワードを含む記事をダウンロード
+esa-cli fetch --query "認証" --latest
+```
+
+## 記事の更新
+
+```bash
+# ローカルのMarkdownファイルから記事を更新
+esa-cli update 123-article-title.md
+
+# 更新時にWIP状態を解除
+esa-cli update 123-article-title.md --no-wip
+
+# 更新時にカテゴリを変更
+esa-cli update 123-article-title.md --category "開発"
+
+# 更新時にタグを追加
+esa-cli update 123-article-title.md --add-tags "API,認証"
+
+# 更新時にタグを削除
+esa-cli update 123-article-title.md --remove-tags "古いタグ"
+
+# 更新時にメッセージを追加
+esa-cli update 123-article-title.md --message "API仕様を更新"
+``` 

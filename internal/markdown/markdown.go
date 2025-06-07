@@ -19,9 +19,9 @@ func GenerateContent(post types.Post) string {
 	if len(post.Tags) > 0 {
 		content.WriteString(fmt.Sprintf("tags: [%s]\n", strings.Join(post.Tags, ", ")))
 	}
-	content.WriteString(fmt.Sprintf("wip: %t\n", post.WIP))
+	content.WriteString(fmt.Sprintf("wip: %t\n", post.Wip))
 	content.WriteString("---\n\n")
-	content.WriteString(post.BodyMd)
+	content.WriteString(post.BodyMD)
 
 	return content.String()
 }
@@ -66,17 +66,15 @@ func ParseContent(content string) (types.Post, error) {
 				}
 			} else if strings.HasPrefix(line, "wip: ") {
 				wipStr := strings.TrimPrefix(line, "wip: ")
-				post.WIP = wipStr == "true"
+				post.Wip = wipStr == "true"
 			}
 		}
 	}
 
 	// 本文を結合
 	if bodyStartIndex < len(lines) {
-		post.BodyMd = strings.Join(lines[bodyStartIndex:], "\n")
+		post.BodyMD = strings.Join(lines[bodyStartIndex:], "\n")
 	}
-
-	post.Message = "Updated via esa-cli"
 
 	return post, nil
 }
