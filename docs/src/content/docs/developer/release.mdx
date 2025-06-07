@@ -3,8 +3,6 @@ title: リリース手順
 description: esa-cliのリリース手順について説明します
 ---
 
-# リリース手順
-
 esa-cliのリリースは以下の手順で行います。
 
 ## 1. リリース前の準備
@@ -62,6 +60,27 @@ esa-cliのリリースは以下の手順で行います。
 2. 必要に応じて、リリースの告知
    - チーム内での共有
    - 関連するIssueやPRのクローズ
+
+## 5. Homebrew Formulaの更新・公開
+
+1. Homebrew公式リポジトリ（Homebrew/homebrew-core）をforkし、ローカルにclone
+2. `Formula/esa-cli.rb` を新しいバージョン・SHA256で更新
+   ```bash
+   # 例: バイナリのSHA256を計算
+   shasum -a 256 esa-cli-darwin-universal.tar.gz
+   ```
+3. 変更をコミットし、forkリポジトリにpush
+   ```bash
+   git add Formula/esa-cli.rb
+   git commit -m "esa-cli 0.1.1"
+   git push origin esa-cli-0.1.1
+   ```
+4. Homebrew公式リポジトリへのPRを作成
+   - GitHubの「Compare across forks」から
+     - base: `Homebrew/homebrew-core` の `master`
+     - compare: `shellme/homebrew-core` の `esa-cli-0.1.1`
+   - PRタイトル・本文にはバージョン、主な変更点、テスト方法などを記載
+5. レビューやCIチェックに対応し、マージを待つ
 
 ## 注意事項
 

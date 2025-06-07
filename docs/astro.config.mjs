@@ -7,8 +7,8 @@ export default defineConfig({
 	base: '/esa-cli',
 	integrations: [
 		starlight({
-			title: 'esa-cli ドキュメント',
-			description: 'esa-cliの公式ドキュメント',
+			title: 'esa-cli',
+			description: 'esa-cliのドキュメント',
 			social: [
 				{
 					icon: 'github',
