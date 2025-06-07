@@ -160,4 +160,65 @@ MIT License
 
 ## 作者
 
-[shellme](https://github.com/shellme) 
+[shellme](https://github.com/shellme)
+
+## 開発者向け
+
+### 開発環境のセットアップ
+
+1. リポジトリのクローン
+```bash
+git clone https://github.com/shellme/esa-cli.git
+cd esa-cli
+```
+
+2. 依存関係のインストール
+```bash
+go mod download
+```
+
+3. Gitフックのセットアップ
+```bash
+./scripts/setup-git-hooks.sh
+```
+
+### コミットメッセージのルール
+
+コミットメッセージは以下の形式に従ってください：
+
+```
+<絵文字> <型>(<スコープ>): <タイトル>
+```
+
+#### 使用可能な絵文字と型の組み合わせ
+
+| 型 | 絵文字 | 説明 | 例 |
+|----|--------|------|-----|
+| feat | ✨ | 新機能の追加 | ✨ feat(cli): 新しいコマンドを追加 |
+| fix | 🐛 | バグ修正 | 🐛 fix(api): エラーメッセージの詳細化 |
+| docs | 📝 | ドキュメントの更新 | 📝 docs: READMEの更新 |
+| style | 🎨 | コードスタイルの修正 | 🎨 style: インデントの修正 |
+| refactor | ♻️ | リファクタリング | ♻️ refactor(internal): コードの整理 |
+| perf | 🚀 | パフォーマンス改善 | 🚀 perf(api): レスポンス時間の改善 |
+| test | 🧪 | テストの追加・修正 | 🧪 test: ユニットテストの追加 |
+| build | 🏗️ | ビルド関連の変更 | 🏗️ build: 依存関係の更新 |
+| ci | 🔧 | CI設定の変更 | 🔧 ci: GitHub Actionsの設定更新 |
+| chore | 📦 | その他の変更 | 📦 chore: パッケージの更新 |
+| revert | ⏪ | 変更の取り消し | ⏪ revert: 前回の変更を取り消し |
+
+#### 使用可能なスコープ
+
+- api: API関連
+- config: 設定関連
+- cli: CLI関連
+- cmd: コマンド関連
+- internal: 内部実装
+- pkg: パッケージ
+
+#### 注意事項
+
+- コミットメッセージは日本語で記述してください
+- タイトルは簡潔に、本文は必要に応じて詳細を記述してください
+- ルールに従わないコミットメッセージはGitフックによって拒否されます
+
+詳細なルールは [.cursor/rules/commit-message.mdc](.cursor/rules/commit-message.mdc) を参照してください。 
