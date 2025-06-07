@@ -23,7 +23,7 @@ jobs:
         run: go mod download
 
       - name: Create dummy config file
-        run: echo '{"access_token":"dummy","team":"dummy-team"}' > ~/.esa-cli-config.json
+        run: echo '{"access_token":"testtoken1234567890","team":"test-team"}' > ~/.esa-cli-config.json
 
       - name: Run tests
         run: go test -v -race -coverprofile=coverage.out ./...
