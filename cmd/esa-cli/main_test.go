@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/shellme/esa-cli/internal/api"
@@ -185,11 +186,22 @@ func TestFetch(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	// テスト用の一時ディレクトリを作成
+	// 一時ディレクトリを作成
 	tmpDir := testutil.CreateTempDir(t)
+	defer os.RemoveAll(tmpDir)
+
+	// テスト用の設定ファイルを作成
+	testutil.CreateTestConfigFile(t, tmpDir)
+
+	// 設定ファイルのパスを設定
+	originalConfigFile := config.ConfigFile
+	config.ConfigFile = filepath.Join(tmpDir, "config.json")
+	defer func() {
+		config.ConfigFile = originalConfigFile
+	}()
 
 	// テスト用の記事ファイルを作成
-	filename := testutil.CreateTestPostFile(t, tmpDir, 1, "テスト記事")
+	postFile := testutil.CreateTestPostFile(t, tmpDir, 1, "テスト記事")
 
 	// モッククライアントを作成
 	mockClient := mock.NewMockHTTPClient()
@@ -215,22 +227,22 @@ func TestUpdate(t *testing.T) {
 	}{
 		{
 			name:    "記事を更新",
-			args:    []string{"update", filename},
+			args:    []string{"update", postFile},
 			wantErr: false,
 		},
 		{
 			name:    "カテゴリーを指定",
-			args:    []string{"update", filename, "--category", "test"},
+			args:    []string{"update", postFile, "--category", "test"},
 			wantErr: false,
 		},
 		{
 			name:    "タグを指定",
-			args:    []string{"update", filename, "--tag", "test"},
+			args:    []string{"update", postFile, "--tag", "test"},
 			wantErr: false,
 		},
 		{
 			name:    "クエリを指定",
-			args:    []string{"update", filename, "--query", "テスト"},
+			args:    []string{"update", postFile, "--query", "テスト"},
 			wantErr: false,
 		},
 	}
