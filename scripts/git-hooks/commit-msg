@@ -3,26 +3,19 @@
 # コミットメッセージを取得
 commit_msg=$(cat "$1")
 
-# 絵文字のリスト
-emojis="🐛 🐞 🚀 ✨ 🔧 📝 ♻️ 🎨 🚨 🚑 🏗️ 🔍 🚮 🏷️ 🚚 🎉 🚀 🐳 🏁 🎨 🚨 🚑 🏗️ 🔍 🚮 🏷️ 🚚 🎉 🚀 🐳 🏁"
-
 # 型のリスト
 types="feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert"
 
-# スコープのリスト（必要に応じて追加）
-scopes="api|config|cli|cmd|internal|pkg"
-
-# 正規表現パターン
-pattern="^([$emojis]) ($types)(\($scopes\))?: .+"
+# 正規表現パターン（スペースを考慮）
+pattern="^([🐛🐞🚀✨🔧📝♻️🎨🚨🚑🏗️🔍🚮🏷️🚚🎉🚀🐳🏁]) ($types)(\([a-z0-9-]+\))?: .+"
 
 # コミットメッセージの検証
 if ! echo "$commit_msg" | grep -qE "$pattern"; then
     echo "❌ コミットメッセージの形式が正しくありません。"
     echo "正しい形式: <絵文字> <型>(<スコープ>): <タイトル>"
     echo ""
-    echo "使用可能な絵文字: $emojis"
     echo "使用可能な型: $types"
-    echo "使用可能なスコープ: $scopes"
+    echo "スコープは任意です。使用する場合は小文字の英数字とハイフンのみ使用可能です。"
     echo ""
     echo "例: 🐛 fix(api): エラーメッセージの詳細化"
     exit 1

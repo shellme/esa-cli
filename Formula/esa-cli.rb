@@ -5,12 +5,12 @@ class EsaCli < Formula
   license "MIT"
 
   if OS.mac?
-    url "https://github.com/shellme/esa-cli/releases/download/v0.1.0/esa-cli-darwin-amd64.tar.gz"
-    sha256 "YOUR_SHA256_HERE" # ビルド後に更新
+    url "https://github.com/shellme/esa-cli/releases/download/v0.1.0/esa-cli-darwin-universal.tar.gz"
+    sha256 "71ad50e126b9aa1fa4c6f0e7319cb1fffcb50ed67cef14beeeec315f19cb157c"
   end
 
   def install
-    bin.install "esa-cli"
+    bin.install "esa-cli-darwin-universal" => "esa-cli"
     
     # 設定ファイルのテンプレートを作成
     (etc/"esa-cli").mkpath

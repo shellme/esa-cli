@@ -31,7 +31,7 @@ cd "$TEMP_DIR"
 
 # ビルド
 echo "🔨 ビルド中..."
-go build -o esa-cli cmd/esa-cli/main.go
+go build -o esa-cli ./cmd/esa-cli/main.go
 
 # インストール
 echo "📥 インストール中..."
