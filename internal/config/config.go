@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/shellme/esa-cli/internal/api"
 )
 
 type Config struct {
@@ -80,7 +82,10 @@ func Setup(client APIClient) error {
 	// 設定をテスト
 	fmt.Println("")
 	fmt.Println("🧪 設定をテスト中...")
-	if err := client.TestConnection(); err != nil {
+
+	// 新しいクライアントを作成してテスト
+	testClient := api.NewClient(config.AccessToken, config.TeamName)
+	if err := testClient.TestConnection(); err != nil {
 		return fmt.Errorf("接続テストに失敗しました: %v\n\nトークンやチーム名を確認してください", err)
 	}
 
@@ -94,6 +99,6 @@ func Setup(client APIClient) error {
 	fmt.Println("  esa-cli fetch 123      # 記事番号123をダウンロード")
 	fmt.Println("  esa-cli update file.md # 記事を更新")
 	fmt.Println("  esa-cli list           # 記事一覧を表示")
-	
+
 	return nil
-} 
+}

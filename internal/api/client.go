@@ -33,7 +33,7 @@ func NewClient(accessToken, teamName string) *Client {
 
 // 接続テスト
 func (c *Client) TestConnection() error {
-	url := fmt.Sprintf("%s/teams/%s", c.BaseURL, c.TeamName)
+	url := fmt.Sprintf("%s/teams", c.BaseURL)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return err
@@ -41,21 +41,36 @@ func (c *Client) TestConnection() error {
 
 	req.Header.Set("Authorization", "Bearer "+c.AccessToken)
 
+	// デバッグログ
+	fmt.Printf("🔍 リクエストURL: %s\n", url)
+	fmt.Printf("🔍 リクエストヘッダー: %v\n", req.Header)
+
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("ネットワークエラー: %v", err)
 	}
-	defer resp.Body.Close()
+
+	// レスポンスボディを読み取り
+	body, err := io.ReadAll(resp.Body)
+	resp.Body.Close() // 読み取り後にクローズ
+	if err != nil {
+		return fmt.Errorf("レスポンスの読み取りに失敗: %v", err)
+	}
+
+	// デバッグログ
+	fmt.Printf("🔍 レスポンスステータス: %d\n", resp.StatusCode)
+	fmt.Printf("🔍 レスポンスヘッダー: %v\n", resp.Header)
+	fmt.Printf("🔍 レスポンスボディ: %s\n", string(body))
 
 	switch resp.StatusCode {
 	case 200:
 		return nil
 	case 401:
-		return fmt.Errorf("認証エラー: アクセストークンが無効です")
+		return fmt.Errorf("認証エラー: アクセストークンが無効です (レスポンス: %s)", string(body))
 	case 404:
-		return fmt.Errorf("チームが見つかりません: '%s' は存在しないか、アクセス権限がありません", c.TeamName)
+		return fmt.Errorf("チームが見つかりません: '%s' は存在しないか、アクセス権限がありません (レスポンス: %s)", c.TeamName, string(body))
 	default:
-		return fmt.Errorf("API エラー (ステータス: %d)", resp.StatusCode)
+		return fmt.Errorf("API エラー (ステータス: %d, レスポンス: %s)", resp.StatusCode, string(body))
 	}
 }
 
