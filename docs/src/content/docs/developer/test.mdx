@@ -1,0 +1,245 @@
+---
+title: "テスト"
+description: "esa-cliのテスト方法"
+---
+
+esa-cliのテスト実行方法と、テストの追加方法について説明します。
+
+## テストの基本方針
+
+1. 標準の`testing`パッケージを使用
+2. 各テストは独立して実行可能
+3. テストデータは適切にクリーンアップ
+
+## テストの実行
+
+### 前提条件
+
+- Go 1.21以上
+- `make`コマンドが利用可能
+- インターネット接続
+
+### テストの実行方法
+
+1. すべてのテストを実行
+```bash
+make test
+```
+
+2. 特定のパッケージのテストを実行
+```bash
+go test ./pkg/...
+```
+
+3. 特定のテストファイルを実行
+```bash
+go test ./pkg/commands/...
+```
+
+4. テストカバレッジの確認
+```bash
+make test-coverage
+```
+
+## テストの種類
+
+### ユニットテスト
+
+各パッケージの機能を個別にテストします。
+
+```bash
+# 例：コマンドパッケージのテスト
+go test ./pkg/commands/...
+```
+
+### 統合テスト
+
+複数のパッケージを組み合わせた機能をテストします。
+
+```bash
+# 例：記事の取得から更新までの一連の流れ
+go test ./tests/integration/...
+```
+
+### E2Eテスト
+
+実際のesa.io APIを使用して、エンドツーエンドの動作をテストします。
+
+```bash
+# E2Eテストの実行
+make test-e2e
+```
+
+## テストの構造
+
+テストは「Given-When-Then」の考え方に基づいて構造化します：
+
+```go
+func Test機能名(t *testing.T) {
+    // Given: テストの前提条件を記述
+    tests := []struct {
+        name    string
+        setup   func() // 前提条件のセットアップ
+        input   interface{}
+        want    interface{}
+        wantErr bool
+    }{
+        {
+            name: "正常系：記事一覧を取得できる",
+            setup: func() {
+                // テストの前提条件をセットアップ
+            },
+            input:   "入力値",
+            want:    "期待値",
+            wantErr: false,
+        },
+        {
+            name: "異常系：無効なトークンの場合はエラーを返す",
+            setup: func() {
+                // エラーケースの前提条件をセットアップ
+            },
+            input:   "不正な入力",
+            want:    nil,
+            wantErr: true,
+        },
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            // Given: 前提条件のセットアップ
+            if tt.setup != nil {
+                tt.setup()
+            }
+
+            // When: テスト対象の関数を実行
+            got, err := テスト対象の関数(tt.input)
+
+            // Then: 結果の検証
+            if (err != nil) != tt.wantErr {
+                t.Errorf("関数名() error = %v, wantErr %v", err, tt.wantErr)
+                return
+            }
+            if !reflect.DeepEqual(got, tt.want) {
+                t.Errorf("関数名() = %v, want %v", got, tt.want)
+            }
+        })
+    }
+}
+```
+
+## テストの命名規則
+
+- テストファイル: `{テスト対象ファイル名}_test.go`
+- テスト関数: `Test{機能名}`
+- サブテスト: 以下の形式で記述
+  - 正常系: `正常系：{期待される動作}`
+  - 異常系: `異常系：{エラー時の動作}`
+  - エッジケース: `エッジケース：{特殊な条件}`
+  - 境界値: `境界値：{境界条件}`
+
+## テストの品質基準
+
+1. テストは独立して実行可能
+2. テストは再現可能
+3. テストは高速に実行可能
+4. テストは適切にエラーメッセージを出力
+5. テストは適切にログを出力
+
+## テストの追加基準
+
+1. 新機能追加時は必ずテストを追加
+2. バグ修正時は必ずテストを追加
+3. リファクタリング時は既存のテストを維持
+4. テストの追加は機能の実装前に行う
+
+## モックの使用
+
+外部依存（API等）は必ずモック化します：
+
+```go
+type MockAPIClient struct {
+    // モックの実装
+}
+
+func (m *MockAPIClient) GetArticle(id int) (*Article, error) {
+    // モックの実装
+}
+```
+
+## テストヘルパー
+
+```go
+// internal/testutil/helper.go
+package testutil
+
+import (
+    "os"
+    "path/filepath"
+    "testing"
+)
+
+// テスト用の一時ディレクトリを作成
+func CreateTempDir(t *testing.T) string {
+    t.Helper()
+    dir, err := os.MkdirTemp("", "esa-cli-test-*")
+    if err != nil {
+        t.Fatal(err)
+    }
+    t.Cleanup(func() {
+        os.RemoveAll(dir)
+    })
+    return dir
+}
+
+// テスト用の記事データを作成
+func CreateTestPost(t *testing.T) string {
+    t.Helper()
+    return `---
+title: テスト記事
+category: test
+tags: [test]
+wip: false
+---
+
+テスト本文
+`
+}
+```
+
+## トラブルシューティング
+
+### テストが失敗する場合
+
+1. テストの実行環境を確認
+```bash
+go version
+make --version
+```
+
+2. 依存関係の確認
+```bash
+go mod tidy
+```
+
+3. キャッシュのクリア
+```bash
+go clean -testcache
+```
+
+### テストカバレッジが低い場合
+
+1. カバレッジレポートの確認
+```bash
+make test-coverage
+```
+
+2. 未テストのコードの特定
+```bash
+go tool cover -html=coverage.out
+```
+
+## 関連ドキュメント
+
+- [開発者ガイド](/developer/) - 開発に関する全般的な情報
+- [リリース手順](/developer/release) - リリースプロセスの説明
+- [コマンドリファレンス](/commands/) - コマンドの詳細な説明 
