@@ -62,7 +62,11 @@ func TestList(t *testing.T) {
 	tmpDir := testutil.CreateTempDir(t)
 
 	// テスト用の設定ファイルを作成
-	testutil.CreateTestConfigFile(t, tmpDir)
+	configPath := testutil.CreateTestConfigFile(t, tmpDir)
+
+	// 設定ファイルのパスを環境変数に設定
+	os.Setenv("ESA_CLI_CONFIG", configPath)
+	defer os.Unsetenv("ESA_CLI_CONFIG")
 
 	// モッククライアントを作成
 	mockClient := mock.NewMockHTTPClient()
