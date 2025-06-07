@@ -15,9 +15,10 @@ if ! echo "$commit_msg" | grep -qE "$pattern"; then
     echo "正しい形式: <絵文字> <型>(<スコープ>): <タイトル>"
     echo ""
     echo "使用可能な型: $types"
-    echo "スコープは任意です。使用する場合は小文字の英数字とハイフンのみ使用可能です。"
+    echo "スコープは任意です（省略可）。使用する場合は小文字の英数字とハイフンのみ使用可能です。"
     echo ""
     echo "例: 🐛 fix(api): エラーメッセージの詳細化"
+    echo "例: 📝 docs: READMEの更新"
     exit 1
 fi
 
