@@ -1,0 +1,70 @@
+---
+title: リリース手順
+description: esa-cliのリリース手順について説明します
+---
+
+# リリース手順
+
+esa-cliのリリースは以下の手順で行います。
+
+## 1. リリース前の準備
+
+1. すべてのテストが通ることを確認
+   ```bash
+   go test ./...
+   ```
+
+2. コードの品質チェック
+   ```bash
+   go vet ./...
+   golangci-lint run
+   ```
+
+3. ドキュメントの更新確認
+   - CHANGELOG.mdの更新
+   - ドキュメントの更新
+
+## 2. バージョン番号の更新
+
+1. `internal/version/version.go`のバージョン番号を更新
+   ```go
+   const Version = "x.y.z"  // 新しいバージョン番号
+   ```
+
+2. 変更をコミット
+   ```bash
+   git add internal/version/version.go
+   git commit -m "Bump version to x.y.z"
+   ```
+
+## 3. リリースの作成
+
+1. タグの作成とプッシュ
+   ```bash
+   git tag -a vx.y.z -m "Release vx.y.z"
+   git push origin vx.y.z
+   ```
+
+2. GitHubでリリースを作成
+   - GitHubのリポジトリページで「Releases」を開く
+   - 「Draft a new release」をクリック
+   - タグバージョンを選択
+   - リリースタイトルを入力（例：`vx.y.z`）
+   - リリースノートを入力（CHANGELOG.mdの内容を参考に）
+   - 「Publish release」をクリック
+
+## 4. リリース後の確認
+
+1. リリースが正しく作成されたことを確認
+   - GitHubのリリースページで確認
+   - バイナリが正しく生成されていることを確認
+
+2. 必要に応じて、リリースの告知
+   - チーム内での共有
+   - 関連するIssueやPRのクローズ
+
+## 注意事項
+
+- セマンティックバージョニングに従ってバージョン番号を更新してください
+- リリース前に必ずテストを実行し、問題がないことを確認してください
+- リリースノートには、ユーザーにとって重要な変更点を記載してください 
