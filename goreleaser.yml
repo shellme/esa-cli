@@ -1,0 +1,48 @@
+project_name: esa-cli
+
+builds:
+  - main: ./cmd/esa-cli
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags: -s -w -X main.version={{.Version}}
+
+archives:
+  - id: default
+    format: tar.gz
+    files:
+      - LICENSE
+
+checksum:
+  name_template: "checksums.txt"
+
+brews:
+  - name: esa-cli
+    tap:
+      owner: shellme
+      name: homebrew-esa-cli
+    commit_author:
+      name: goreleaserbot
+      email: goreleaser@users.noreply.github.com
+    homepage: "https://github.com/shellme/esa-cli"
+    description: "CLI tool for managing esa.io articles"
+    license: "MIT"
+    test: |
+      system "#{bin}/esa-cli", "version"
+    install: |
+      bin.install "esa-cli"
+
+release:
+  github:
+    owner: shellme
+    name: esa-cli
+
+changelog:
+  sort: desc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:' 
