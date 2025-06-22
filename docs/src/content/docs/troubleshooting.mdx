@@ -7,6 +7,38 @@ esa-cliの使用中に発生する可能性のある問題と、その解決方�
 
 ## インストールの問題
 
+### Homebrewアップグレードエラー
+
+#### 症状
+- `brew upgrade esa-cli` で以下のエラーが発生する：
+```
+Error: An exception occurred within a child process:
+  RuntimeError: Will not overwrite /opt/homebrew/etc/esa-cli/config.template
+```
+
+#### 原因
+既存の設定ファイル（`config.template`）が存在するため、Homebrewが上書きを拒否している状態です。
+
+#### 解決手順
+
+1. 既存の設定ファイルを削除
+```bash
+rm /opt/homebrew/etc/esa-cli/config.template
+```
+
+2. アップグレードを再実行
+```bash
+brew upgrade esa-cli
+```
+
+#### 予防策
+このエラーは以下の場合に発生する可能性があります：
+- 初回インストール後のアップグレード時
+- 手動で設定ファイルを編集した場合
+- Formulaの変更があった場合
+
+通常、一度解決すれば今後のアップグレードでは発生しません。
+
 ### インストールが完了しない
 
 #### 症状

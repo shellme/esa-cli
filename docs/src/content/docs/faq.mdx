@@ -14,6 +14,21 @@ brew uninstall esa-cli
 brew install shellme/esa-cli
 ```
 
+### Q: `brew upgrade esa-cli` で「Will not overwrite config.template」エラーが出ます
+A: これは既存の設定ファイルが原因でHomebrewが上書きを拒否しているエラーです。以下の手順で解決できます：
+
+1. 既存の設定ファイルを削除
+```bash
+rm /opt/homebrew/etc/esa-cli/config.template
+```
+
+2. アップグレードを再実行
+```bash
+brew upgrade esa-cli
+```
+
+このエラーは初回インストール後のアップグレード時や、手動で設定ファイルを編集した場合に発生する可能性があります。一度解決すれば今後のアップグレードでは通常発生しません。
+
 ### Q: `esa-cli` コマンドが見つかりません
 A: 以下の点を確認してください：
 
