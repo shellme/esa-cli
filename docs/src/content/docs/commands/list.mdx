@@ -16,9 +16,9 @@ esa-cli list [count]
 ### オプション
 
 - `count` - 表示する記事数（デフォルト: 10）
-- `--category` - カテゴリでフィルタ（例: "開発/ドキュメント"）
-- `--tag` - タグでフィルタ（例: "API"）
-- `--query` - 検索キーワード
+- `-category` - カテゴリでフィルタ（例: "開発/ドキュメント"）
+- `-tag` - タグでフィルタ（例: "API"）
+- `-query` - 検索キーワード
 
 ### 出力形式
 
@@ -47,23 +47,23 @@ esa-cli list 5
 
 ```bash
 # 特定のカテゴリの記事を表示
-esa-cli list --category "開発/ドキュメント"
+esa-cli list -category "開発/ドキュメント"
 
 # 特定のタグが付いた記事を表示
-esa-cli list --tag "API"
+esa-cli list -tag "API"
 
 # 検索キーワードで記事を検索
-esa-cli list --query "新機能"
+esa-cli list -query "新機能"
 ```
 
 ### 高度な使用方法
 
 ```bash
 # 特定のカテゴリとタグの組み合わせで記事を表示
-esa-cli list --category "開発/ドキュメント" --tag "API"
+esa-cli list -category "開発/ドキュメント" -tag "API"
 
 # 検索結果をファイルに保存
-esa-cli list --query "新機能" > search-results.txt
+esa-cli list -query "新機能" > search-results.txt
 
 # 最新の記事の番号を取得
 esa-cli list 1 | grep -o '^\[[0-9]*\]' | tr -d '[]'

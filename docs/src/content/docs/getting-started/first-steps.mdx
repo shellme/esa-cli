@@ -3,34 +3,40 @@ title: "初期設定と基本操作"
 description: "esa-cliの初期設定と基本的な使い方"
 ---
 
+import { Steps } from '@astrojs/starlight/components';
+
 esa-cliの初期設定と基本的な使い方を説明します。
 
-## 初期設定
-
-### 前提条件
+## 前提条件
 - esa-cliがインストールされていること
 - esa.ioのアカウントがあること
 - インターネット接続があること
 
-### 設定手順
+## 設定手順
+
+<Steps>
 
 1. 初期設定を開始
-```bash
-esa-cli setup
-```
+
+   ```bash
+   # 初期設定を開始
+   esa-cli setup
+   ```
 
 2. チーム名（サブドメイン）を入力
    - 例：`my-team`（URLが `https://my-team.esa.io` の場合）
 
 3. アクセストークンを生成
    - `https://<your-team>.esa.io/user/applications` にアクセス
-   - 'Personal access tokens' セクションの 'Generate new token' をクリック
-   - Token description に 'esa-cli' と入力
-   - Scopes で 'read' と 'write' にチェック
-   - 'Generate token' をクリック
+   - `Personal access tokens` セクションの `Generate new token` をクリック
+   - `Token description` に `esa-cli` と入力
+   - `Scopes` で `read` と `write` にチェック
+   - `Generate token` をクリック
    - 表示されたトークンをコピー
 
 4. アクセストークンを入力
+</Steps>
+
 
 設定は `~/.esa-cli-config.json` に保存されます。
 
@@ -107,6 +113,6 @@ Finderの検索バーで記事のタイトルやカテゴリを検索できま�
 
 ## 次のステップ
 
-- [コマンドリファレンス](/commands) - すべてのコマンドの詳細な説明
-- [よくある質問](/faq) - よくある質問と回答
-- [トラブルシューティング](/troubleshooting) - 問題解決のガイド 
+- [コマンドリファレンス](./commands) - すべてのコマンドの詳細な説明
+- [よくある質問](./faq) - よくある質問と回答
+- [トラブルシューティング](./troubleshooting) - 問題解決のガイド 

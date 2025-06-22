@@ -20,19 +20,19 @@ esa-cliの使用中に発生する可能性のある問題と、その解決方�
 brew uninstall esa-cli
 ```
 
-2. Homebrewのキャッシュをクリア
+2. 再インストール
 ```bash
-brew cleanup
-```
-
-3. 再インストール
-```bash
+# tapが既に追加されている場合は直接インストール
 brew install shellme/esa-cli
+
+# もしくは、tapを明示的に追加してからインストール
+brew tap shellme/esa-cli
+brew install esa-cli
 ```
 
-4. インストールの確認
+3. インストールの確認
 ```bash
-esa-cli --version
+esa-cli version
 ```
 
 ### コマンドが見つからない

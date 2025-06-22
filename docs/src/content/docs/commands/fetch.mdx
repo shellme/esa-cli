@@ -51,10 +51,14 @@ esa-cli fetch 123
 
 ```bash
 # 最新の5件の記事をダウンロード
-esa-cli list 5 | grep -o '^\[[0-9]*\]' | tr -d '[]' | xargs -I {} esa-cli fetch {}
+esa-cli list 5 | cut -d':' -f1 | while read -r article_id; do
+  esa-cli fetch "$article_id"
+done
 
 # 特定のカテゴリの記事を一括ダウンロード
-esa-cli list --category "開発/ドキュメント" | grep -o '^\[[0-9]*\]' | tr -d '[]' | xargs -I {} esa-cli fetch {}
+esa-cli list -category "開発/ドキュメント" | cut -d':' -f1 | while read -r article_id; do
+  esa-cli fetch "$article_id"
+done
 ```
 
 ### バックアップ
@@ -66,7 +70,9 @@ BACKUP_DIR="./backup/$DATE"
 mkdir -p "$BACKUP_DIR"
 
 # 全記事をバックアップ
-esa-cli list | grep -o '^\[[0-9]*\]' | tr -d '[]' | xargs -I {} esa-cli fetch {}
+esa-cli list | cut -d':' -f1 | while read -r article_id; do
+  esa-cli fetch "$article_id"
+done
 mv *-*.md "$BACKUP_DIR"
 ```
 

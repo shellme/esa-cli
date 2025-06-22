@@ -5,84 +5,108 @@ description: "esa-cliの高度なコマンド使用例と実践的なシナリ�
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-esa-cliを使いこなすことで、ドキュメント管理やナレッジ共有をさらに効率化できます。ここでは、カテゴリ・タグの活用や一括処理など、実務で役立つ高度な操作例を紹介します。
+ドキュメント管理やナレッジ共有をさらに効率化するために、カテゴリ・タグの活用や一括処理など、実務で役立つ高度な操作例を紹介します。
 
-## カテゴリ・タグを活用した記事管理
-
-- **カテゴリで絞り込み**
-  ```bash
-  esa-cli list --category "開発/設計"
-  ```
-- **タグで絞り込み**
-  ```bash
-  esa-cli list --tag "API"
-  ```
-
-## 一括ダウンロード＆一括更新
-
-### 1. 記事を一括ダウンロード
+## カテゴリ・タグで絞り込み
 
 <Tabs>
-  <TabItem label="カテゴリで指定">
-```bash
-esa-cli list --category "開発/設計" | while read -r article_id; do
-  esa-cli fetch "$article_id"
-done
-```
+  <TabItem label="カテゴリで絞り込み">
+    ```bash
+    esa-cli list -category "開発/設計"
+    ```
   </TabItem>
-  <TabItem label="タグで指定">
-```bash
-esa-cli list --tag "重要" | while read -r article_id; do
-  esa-cli fetch "$article_id"
-done
-```
+
+  <TabItem label="タグで絞り込み">
+    ```bash
+    esa-cli list -tag "API"
+    ```
   </TabItem>
 </Tabs>
 
-これで、カレントディレクトリに `記事番号-タイトル.md` 形式のMarkdownファイルが一括保存されます。
+## 一括ダウンロード＆一括更新
+
+カテゴリやタグで絞り込んで記事を一括ダウンロードしたり、一括更新したりできます。  
+「カテゴリやタグで絞り込んだ記事の大規模なリネーム」「一括でタグや本文を修正したい」など、さまざまな場面で活用できます。
 
 
-### 3. ローカルで記事を一括編集
+### 記事を一括ダウンロード
 
-- ダウンロードしたMarkdownファイルをエディタやスクリプトで一括修正します。
-  - 例: VS Codeの一括置換、sed/awkでの自動修正など
+カレントディレクトリに `記事番号-タイトル.md` 形式のMarkdownファイルが一括保存されます。
 
-### 4. 一括で再アップロード（更新）
+<Tabs>
+  <TabItem label="カテゴリで指定">
+    ```bash
+    esa-cli list -category "開発/設計" | cut -d':' -f1 | while read -r article_id; do
+      esa-cli fetch "$article_id"
+    done
+    ```
+  </TabItem>
+  <TabItem label="タグで指定">
+    ```bash
+    esa-cli list -tag "重要" | cut -d':' -f1 | while read -r article_id; do
+      esa-cli fetch "$article_id"
+    done
+    ```
+  </TabItem>
+  <TabItem label="最新記事をダウンロード">
+    ```bash
+    # 特定のカテゴリの最新記事をダウンロード
+    esa-cli fetch -category "開発/設計" -latest
+    
+    # 特定のタグの最新記事をダウンロード
+    esa-cli fetch -tag "重要" -latest
+    ```
+  </TabItem>
+  <TabItem label="より安全な方法">
+    ```bash
+    esa-cli list -category "開発/設計" | while read -r line; do
+      article_id=$(echo "$line" | cut -d':' -f1 | tr -d ' ')
+      if [[ "$article_id" =~ ^[0-9]+$ ]]; then
+        esa-cli fetch "$article_id"
+      fi
+    done
+    ```
+  </TabItem>
+</Tabs>
+
+### 一括で再アップロード（更新）
+
+ファイル名が `記事番号-タイトル.md` 形式であれば、そのまま一括で更新できます。
 
 ```bash
 for file in *.md; do
   esa-cli update "$file"
 done
 ```
-- ファイル名が `記事番号-タイトル.md` 形式であれば、そのまま一括で更新できます。
-
----
-
-> このフローは「カテゴリやタグで絞り込んだ記事の大規模なリネーム」「一括でタグや本文を修正したい」など、さまざまな場面で活用できます。
 
 ## バックアップ・リストア
 
-- **毎日のバックアップスクリプト例**
-  ```bash
-  #!/bin/bash
-  DATE=$(date +%Y%m%d)
-  BACKUP_DIR="./backup/$DATE"
-  mkdir -p "$BACKUP_DIR"
-  esa-cli list | xargs -I {} esa-cli fetch {} --output "$BACKUP_DIR"
-  ```
+**毎日のバックアップスクリプト例**
+```bash
+#!/bin/bash
+DATE=$(date +%Y%m%d)
+BACKUP_DIR="./backup/$DATE"
+mkdir -p "$BACKUP_DIR"
+
+# 全記事をバックアップ
+esa-cli list | cut -d':' -f1 | while read -r article_id; do
+  esa-cli fetch "$article_id"
+done
+
+# ダウンロードしたファイルをバックアップディレクトリに移動
+mv *-*.md "$BACKUP_DIR"
+```
 
 ## 高度な検索・フィルタリング
 
-- **複数条件で検索**
-  ```bash
-  esa-cli list --query "設計" --category "開発" --tag "API"
-  ```
+**複数条件で検索**
+```bash
+esa-cli list -query "設計" -category "開発" -tag "API"
+```
 
 ## カスタマイズ・自動化
 
 - **エディタやFinderとの連携、通知機能の活用**
 - **シェルスクリプトでの自動化例**
 
----
-
-> さらに詳細なコマンド仕様は[コマンドリファレンス](../commands/)を参照してください。 
+さらに詳細なコマンド仕様は[コマンドリファレンス](./commands/)を参照してください。 
