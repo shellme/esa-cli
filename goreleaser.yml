@@ -21,9 +21,10 @@ checksum:
 
 brews:
   - name: esa-cli
-    tap:
+    repository:
       owner: shellme
       name: homebrew-esa-cli
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     commit_author:
       name: goreleaserbot
       email: goreleaser@users.noreply.github.com
