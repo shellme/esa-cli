@@ -4,7 +4,7 @@ class EsaCli < Formula
   license "MIT"
   version "0.1.3"
   url "https://github.com/shellme/esa-cli/releases/download/v#{version}/esa-cli-darwin-universal.tar.gz"
-  sha256 "2e282a3cb0c9dc74efaea1a5767f89d8a4e3f9fafaa0285713b54c1df9f2a68e"
+  sha256 "f65f01d5c862bcf720f498a0a05fa470df0c4f3210c0007aa955c080d4c27c99"
 
   def install
     bin.install "esa-cli"
