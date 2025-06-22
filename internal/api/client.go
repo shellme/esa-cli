@@ -18,6 +18,7 @@ type ListPostsOptions struct {
 	Category string
 	Tag      string
 	Query    string
+	User     string
 	Limit    int
 }
 
@@ -49,7 +50,7 @@ func (c *Client) TestConnection() error {
 		return err
 	}
 
-	req.Header.Set("Authorization", "Bearer "+c.teamName)
+	req.Header.Set("Authorization", "Bearer "+c.accessToken)
 
 	// デバッグログ
 	fmt.Printf("🔍 リクエストURL: %s\n", url)
@@ -91,7 +92,7 @@ func (c *Client) makeRequest(method, path string, body io.Reader) (*http.Respons
 		return nil, err
 	}
 
-	req.Header.Set("Authorization", "Bearer "+c.teamName)
+	req.Header.Set("Authorization", "Bearer "+c.accessToken)
 	req.Header.Set("Content-Type", "application/json")
 
 	return c.client.Do(req)
@@ -113,6 +114,9 @@ func (c *Client) ListPosts(ctx context.Context, options *ListPostsOptions) ([]*t
 		}
 		if options.Query != "" {
 			params = append(params, "q="+options.Query)
+		}
+		if options.User != "" {
+			params = append(params, "user="+options.User)
 		}
 		if options.Limit > 0 {
 			params = append(params, "per_page="+strconv.Itoa(options.Limit))
@@ -206,6 +210,24 @@ func (c *Client) UpdatePost(ctx context.Context, postNumber int, post types.Upda
 	}
 
 	return &updatedPost, nil
+}
+
+// BulkUpdateCategory 複数の記事のカテゴリを一括更新
+func (c *Client) BulkUpdateCategory(ctx context.Context, postNumbers []int, newCategory string, message string) ([]*types.Post, error) {
+	var updatedPosts []*types.Post
+
+	for _, postNumber := range postNumbers {
+		post, err := c.UpdatePost(ctx, postNumber, types.UpdatePostBody{
+			Category: newCategory,
+			Message:  message,
+		})
+		if err != nil {
+			return updatedPosts, fmt.Errorf("記事 %d の更新に失敗: %w", postNumber, err)
+		}
+		updatedPosts = append(updatedPosts, post)
+	}
+
+	return updatedPosts, nil
 }
 
 func sanitizeFilename(name string) string {

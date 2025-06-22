@@ -14,15 +14,26 @@ esa-cli list
 
 カテゴリやタグで絞り込みも可能です。
 ```bash
-esa-cli list -category "開発/ドキュメント"
-esa-cli list -tag "API"
+esa-cli list -c "開発/ドキュメント"
+esa-cli list --category "開発/ドキュメント"
+esa-cli list -t "API"
+esa-cli list --tag "API"
 ```
 
 ## 記事の検索
 
 タイトルや本文にキーワードを含む記事を検索できます。
 ```bash
-esa-cli list -query "検索キーワード"
+esa-cli list -q "検索キーワード"
+esa-cli list --query "検索キーワード"
+```
+
+## 作成者での絞り込み
+
+自分が作成した記事を絞り込んで表示できます。
+```bash
+esa-cli list -u "自分のユーザー名"
+esa-cli list --user "自分のユーザー名"
 ```
 
 ## 記事のダウンロード
@@ -32,11 +43,31 @@ esa-cli list -query "検索キーワード"
 esa-cli fetch 123
 ```
 
+フィルタリングと組み合わせて最新記事をダウンロードできます。
+```bash
+esa-cli fetch -c 開発 -l
+esa-cli fetch --category 開発 --latest
+```
+
 ## 記事の更新
 
 ローカルで編集したMarkdownファイルから記事を更新できます。
 ```bash
 esa-cli update 123-article-title.md
+```
+
+オプションを組み合わせて効率的に更新できます。
+```bash
+esa-cli update 123-article-title.md -c 開発 -m "カテゴリを変更"
+esa-cli update 123-article-title.md --category 開発 --message "カテゴリを変更"
+```
+
+## 記事の一括移動
+
+特定の条件で記事を一括でカテゴリ移動できます。
+```bash
+esa-cli move -c 開発 -o デザイン -u 自分のユーザー名
+esa-cli move --category 開発 --to デザイン --user 自分のユーザー名
 ```
 
 ## リモート変更の安全な更新

@@ -1,10 +1,15 @@
 package config
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
+
+	"github.com/shellme/esa-cli/internal/api"
 )
 
 type Config struct {
@@ -68,9 +73,12 @@ type APIClient interface {
 
 // 初期設定コマンド
 func Setup(client APIClient) error {
-	config, err := Load()
-	if err != nil {
-		return fmt.Errorf("設定の読み込みに失敗しました: %v", err)
+	// 初期設定時は設定ファイルが存在しなくても正常
+	config := &Config{}
+
+	// 既存の設定ファイルがある場合は読み込み
+	if existingConfig, err := Load(); err == nil {
+		config = existingConfig
 	}
 
 	fmt.Println("🔧 esa-cli 初期設定")
@@ -84,19 +92,35 @@ func Setup(client APIClient) error {
 	fmt.Println("6. 表示されたトークンをコピー（画面を閉じると再表示できません）")
 	fmt.Println("")
 
+	scanner := bufio.NewScanner(os.Stdin)
+
 	fmt.Print("チーム名（サブドメイン）を入力: ")
-	fmt.Scanln(&config.TeamName)
+	if scanner.Scan() {
+		config.TeamName = strings.TrimSpace(scanner.Text())
+	}
 
 	fmt.Print("アクセストークンを入力: ")
-	fmt.Scanln(&config.AccessToken)
+	if scanner.Scan() {
+		config.AccessToken = strings.TrimSpace(scanner.Text())
+	}
+
+	// デバッグログ（開発時のみ）
+	fmt.Printf("🔍 デバッグ: チーム名='%s', トークン='%s'\n", config.TeamName, config.AccessToken)
+
+	// 入力値の検証
+	if config.TeamName == "" {
+		return fmt.Errorf("チーム名が入力されていません")
+	}
+	if config.AccessToken == "" {
+		return fmt.Errorf("アクセストークンが入力されていません")
+	}
 
 	// 設定をテスト
 	fmt.Println("")
 	fmt.Println("🧪 設定をテスト中...")
 
-	if client == nil {
-		return fmt.Errorf("APIクライアントがnilです")
-	}
+	// 入力値で新しいクライアントを生成
+	client = api.NewClient(config.TeamName, config.AccessToken, http.DefaultClient)
 	if err := client.TestConnection(); err != nil {
 		return fmt.Errorf("接続テストに失敗しました: %v\n\nトークンやチーム名を確認してください", err)
 	}

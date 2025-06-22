@@ -97,54 +97,147 @@ done
 mv *-*.md "$BACKUP_DIR"
 ```
 
-## 高度な検索・フィルタリング
+## 複数条件での絞り込み
 
-**複数条件で検索**
+カテゴリ、タグ、作成者、検索ワードを組み合わせて記事を絞り込めます。
+
 ```bash
-esa-cli list -query "設計" -category "開発" -tag "API"
+# カテゴリとタグの組み合わせ
+esa-cli list -c 開発 -t API
+esa-cli list --category 開発 --tag API
+
+# 作成者とカテゴリの組み合わせ
+esa-cli list -c 開発 -u 自分のユーザー名
+esa-cli list --category 開発 --user 自分のユーザー名
+
+# 検索ワードとタグの組み合わせ
+esa-cli list -q 認証 -t API
+esa-cli list --query 認証 --tag API
+```
+
+## 効率的な記事管理
+
+### 最新記事の自動ダウンロード
+
+特定の条件で最新記事を自動的にダウンロードできます。
+
+```bash
+# 開発カテゴリの最新記事をダウンロード
+esa-cli fetch -c 開発 -l
+esa-cli fetch --category 開発 --latest
+
+# 自分が作成したAPI関連の最新記事をダウンロード
+esa-cli fetch -t API -u 自分のユーザー名 -l
+esa-cli fetch --tag API --user 自分のユーザー名 --latest
+```
+
+### 一括更新の効率化
+
+複数の記事を効率的に更新できます。
+
+```bash
+# カテゴリを変更して更新
+esa-cli update 123-article-title.md -c 開発
+esa-cli update 123-article-title.md --category 開発
+
+# タグを追加して更新
+esa-cli update 123-article-title.md -a API,認証
+esa-cli update 123-article-title.md --add-tags API,認証
+
+# タグを削除して更新
+esa-cli update 123-article-title.md -r 古いタグ
+esa-cli update 123-article-title.md --remove-tags 古いタグ
+
+# WIP状態を解除して更新
+esa-cli update 123-article-title.md -n
+esa-cli update 123-article-title.md --no-wip
+```
+
+## 記事の一括整理
+
+### カテゴリの一括移動
+
+プロジェクトの進行に合わせて記事を効率的に整理できます。
+
+```bash
+# 開発完了した記事をドキュメントカテゴリに移動
+esa-cli move -c 開発 -o ドキュメント -u 自分のユーザー名
+esa-cli move --category 開発 --to ドキュメント --user 自分のユーザー名
+
+# 複数条件で絞り込んで移動
+esa-cli move -c 開発 -t API -u 自分のユーザー名 -o ドキュメント
+esa-cli move --category 開発 --tag API --user 自分のユーザー名 --to ドキュメント
+```
+
+### 自動化とスクリプト化
+
+確認プロンプトをスキップして自動実行できます。
+
+```bash
+# 確認なしで強制実行
+esa-cli move -c 開発 -o ドキュメント -u 自分のユーザー名 -f
+esa-cli move --category 開発 --to ドキュメント --user 自分のユーザー名 --force
+
+# カスタムメッセージ付きで移動
+esa-cli move -c 開発 -o ドキュメント -u 自分のユーザー名 -m リファクタリング完了
+esa-cli move --category 開発 --to ドキュメント --user 自分のユーザー名 --message リファクタリング完了
+```
+
+### シェルスクリプトでの活用
+
+```bash
+#!/bin/bash
+# 開発完了した記事を一括移動するスクリプト
+
+echo "開発完了した記事をドキュメントに移動します..."
+
+# 開発カテゴリで自分が作成した記事をドキュメントに移動
+esa-cli move -c 開発 -o ドキュメント -u 自分のユーザー名 -f -m "開発完了による移動"
+
+echo "移動が完了しました！"
 ```
 
 ## チーム作業での安全な更新
 
-複数人で同じ記事を編集する際の競合を防ぐために、リモート変更チェック機能を活用できます。
+### リモート変更の検出
 
-### 一括更新時の安全対策
-
-```bash
-# 一括更新前にリモート変更をチェック
-for file in *.md; do
-  echo "更新中: $file"
-  esa-cli update "$file"
-  # リモート変更があれば確認プロンプトが表示されます
-done
-```
-
-### 自動化スクリプトでの活用
+チームで記事を編集する際、他の人の変更を誤って上書きすることを防げます。
 
 ```bash
-#!/bin/bash
-# 安全な一括更新スクリプト
-
-for file in *.md; do
-  if [[ "$file" =~ ^[0-9]+-.*\.md$ ]]; then
-    echo "更新中: $file"
-    
-    # 更新を実行（リモート変更があれば確認プロンプトが表示）
-    if esa-cli update "$file"; then
-      echo "✅ 更新完了: $file"
-    else
-      echo "❌ 更新失敗またはキャンセル: $file"
-    fi
-  fi
-done
+# 更新時にリモート変更があれば警告が表示されます
+esa-cli update 123-article-title.md
 ```
 
-### 競合回避のベストプラクティス
+**警告例：**
+```
+⚠️  警告: リモートの記事はローカルで編集を始めてから更新されています。
+  リモート: 2025-06-22 14:01:45
+  ローカル: 2025-06-21 09:32:41
+このまま上書きしますか？ (y/N):
+```
 
-1. **定期的な同期**: 作業開始前に最新の記事を`fetch`で取得
-2. **小さな変更**: 大きな変更は複数の小さな更新に分割
-3. **コミュニケーション**: チーム内で同時編集を避ける
-4. **バックアップ**: 重要な変更前にはローカルバックアップを作成
+### 安全な更新のベストプラクティス
+
+1. **更新前に最新状態を確認**
+   ```bash
+   esa-cli fetch 123  # 最新状態を取得
+   ```
+
+2. **変更履歴を明確に記録**
+   ```bash
+   esa-cli update 123-article-title.md -m "API仕様を更新"
+   esa-cli update 123-article-title.md --message "API仕様を更新"
+   ```
+
+3. **WIP状態の適切な管理**
+   ```bash
+   # 作業中はWIP状態で更新
+   esa-cli update 123-article-title.md
+   
+   # 完了時はWIPを解除
+   esa-cli update 123-article-title.md -n
+   esa-cli update 123-article-title.md --no-wip
+   ```
 
 ## カスタマイズ・自動化
 

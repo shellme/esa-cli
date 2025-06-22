@@ -139,6 +139,22 @@ esa-cli list
 
 # 表示件数を指定
 esa-cli list 20
+
+# カテゴリでフィルタリング
+esa-cli list -c 開発
+esa-cli list --category 開発
+
+# タグでフィルタリング
+esa-cli list -t API
+esa-cli list --tag API
+
+# 検索ワードでフィルタリング
+esa-cli list -q 認証
+esa-cli list --query 認証
+
+# 作成者でフィルタリング
+esa-cli list -u 自分のユーザー名
+esa-cli list --user 自分のユーザー名
 ```
 
 ### 記事のダウンロード
@@ -146,6 +162,18 @@ esa-cli list 20
 ```bash
 # 記事番号を指定してダウンロード
 esa-cli fetch 123
+
+# カテゴリの最新記事をダウンロード
+esa-cli fetch -c 開発 -l
+esa-cli fetch --category 開発 --latest
+
+# タグの最新記事をダウンロード
+esa-cli fetch -t API -l
+esa-cli fetch --tag API --latest
+
+# 作成者の最新記事をダウンロード
+esa-cli fetch -u 自分のユーザー名 -l
+esa-cli fetch --user 自分のユーザー名 --latest
 ```
 
 ダウンロードされたファイルは以下の形式で保存されます：
@@ -160,6 +188,7 @@ title: 記事のタイトル
 category: カテゴリ
 tags: [tag1, tag2]
 wip: false
+remote_updated_at: "2025-06-21T09:32:41+09:00"
 ---
 
 記事の本文...
@@ -170,6 +199,42 @@ wip: false
 ```bash
 # ローカルのMarkdownファイルから記事を更新
 esa-cli update 123-article-title.md
+
+# WIP状態を解除して更新
+esa-cli update 123-article-title.md -n
+esa-cli update 123-article-title.md --no-wip
+
+# カテゴリを変更して更新
+esa-cli update 123-article-title.md -c 開発
+esa-cli update 123-article-title.md --category 開発
+
+# タグを追加して更新
+esa-cli update 123-article-title.md -a API,認証
+esa-cli update 123-article-title.md --add-tags API,認証
+
+# メッセージを付けて更新
+esa-cli update 123-article-title.md -m API仕様を更新
+esa-cli update 123-article-title.md --message API仕様を更新
+```
+
+### 記事の一括移動
+
+```bash
+# 特定のカテゴリで自分が作成した記事を一括移動
+esa-cli move -c 開発 -o デザイン -u 自分のユーザー名
+esa-cli move --category 開発 --to デザイン --user 自分のユーザー名
+
+# 確認なしで強制実行
+esa-cli move -c 開発 -o デザイン -u 自分のユーザー名 -f
+esa-cli move --category 開発 --to デザイン --user 自分のユーザー名 --force
+
+# カスタムメッセージ付きで移動
+esa-cli move -c 開発 -o デザイン -u 自分のユーザー名 -m リファクタリング完了
+esa-cli move --category 開発 --to デザイン --user 自分のユーザー名 --message リファクタリング完了
+
+# 複数条件で絞り込み
+esa-cli move -c 開発 -t API -u 自分のユーザー名 -o ドキュメント
+esa-cli move --category 開発 --tag API --user 自分のユーザー名 --to ドキュメント
 ```
 
 ### ヘルプの表示

@@ -55,6 +55,26 @@ remote_updated_at: "2025-06-21T09:32:41+09:00"
 esa-cli fetch 123
 ```
 
+### フィルタリングとダウンロード
+
+```bash
+# カテゴリの最新記事をダウンロード
+esa-cli fetch -c 開発 -l
+esa-cli fetch --category 開発 --latest
+
+# タグの最新記事をダウンロード
+esa-cli fetch -t API -l
+esa-cli fetch --tag API --latest
+
+# 作成者の最新記事をダウンロード
+esa-cli fetch -u 自分のユーザー名 -l
+esa-cli fetch --user 自分のユーザー名 --latest
+
+# 検索ワードの最新記事をダウンロード
+esa-cli fetch -q 認証 -l
+esa-cli fetch --query 認証 --latest
+```
+
 ### 一括ダウンロード
 
 ```bash

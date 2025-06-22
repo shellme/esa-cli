@@ -19,8 +19,11 @@ esa-cli update <file_path>
 
 ### オプション
 
-- `-message` - 更新メッセージ（変更履歴に表示）
-- `-wip` - WIPとして更新（true/false）
+- `-m, --message` - 更新メッセージ（変更履歴に表示）
+- `-n, --no-wip` - WIPとして更新（true/false）
+- `-c, --category` - カテゴリを変更
+- `-a, --add-tags` - タグを追加（カンマ区切り）
+- `-r, --remove-tags` - タグを削除（カンマ区切り）
 
 ### ファイル名の規則
 
@@ -52,17 +55,35 @@ wip: false
 esa-cli update 123-article-title.md
 
 # 更新メッセージを指定
-esa-cli update 123-article-title.md -message "タイトルを更新"
+esa-cli update 123-article-title.md -m "タイトルを更新"
+esa-cli update 123-article-title.md --message "タイトルを更新"
 ```
 
 ### WIPの管理
 
 ```bash
 # 記事をWIPとして更新
-esa-cli update 123-article-title.md -wip true
+esa-cli update 123-article-title.md
 
 # WIPを解除
-esa-cli update 123-article-title.md -wip false
+esa-cli update 123-article-title.md -n
+esa-cli update 123-article-title.md --no-wip
+```
+
+### カテゴリとタグの管理
+
+```bash
+# カテゴリを変更
+esa-cli update 123-article-title.md -c 開発
+esa-cli update 123-article-title.md --category 開発
+
+# タグを追加
+esa-cli update 123-article-title.md -a API,認証
+esa-cli update 123-article-title.md --add-tags API,認証
+
+# タグを削除
+esa-cli update 123-article-title.md -r 古いタグ
+esa-cli update 123-article-title.md --remove-tags 古いタグ
 ```
 
 ### 一括更新
