@@ -3,10 +3,12 @@ title: リリース手順
 description: esa-cliのリリース手順について説明します
 ---
 import { Steps } from '@astrojs/starlight/components';
+import { Aside } from '@astrojs/starlight/components';
 
-esa-cliのリリースは、以下の手順で正確に行います。
+esa-cliのリリースは、GitHub Actionsによって大部分が自動化されています。
+以下の手順で新しいバージョンをリリースできます。
 
-## 1. バージョン更新とビルド
+## リリース手順
 
 <Steps>
 1. **バージョン番号の更新**
@@ -18,145 +20,74 @@ esa-cliのリリースは、以下の手順で正確に行います。
     const Version = "x.y.z"  // 新しいバージョン番号
     ```
 
-2. **変更をコミット**
+2. **変更のコミットとプッシュ**
+
+    バージョン番号の更新をコミットし、`main`ブランチにプッシュします。
 
     ```bash
     git add internal/version/version.go
     git commit -m "build: Bump version to x.y.z"
+    git push origin main
     ```
 
-3. **リリース用バイナリのビルド**
+3. **リリースタグの作成とプッシュ**
 
-    `make release` を実行して、Mac用のユニバーサルバイナリとアーカイブを作成します。
-
-    ```bash
-    make release
-    ```
-
-4. **SHA256の計算**
-
-    作成されたアーカイブのSHA256ハッシュ値を計算します。この値は後で使います。
-
-    ```bash
-    shasum -a 256 esa-cli-darwin-universal.tar.gz
-    ```
-
-5. **Homebrew Formulaの更新**
-
-    `Formula/esa-cli.rb` を開き、`version` と `sha256` の値を更新します。
-
-    ```ruby
-    # Formula/esa-cli.rb
-    class EsaCli < Formula
-      # ...
-      version "x.y.z"
-      sha256 "先ほど計算したハッシュ値"
-      # ...
-      def install
-        # アーカイブ内のバイナリ名が 'esa-cli' でない場合、
-        # `bin.install "実際の名前" => "esa-cli"` のように指定
-        bin.install "esa-cli-darwin-universal" => "esa-cli"
-      end
-      # ...
-    end
-    ```
-
-    **🚨 注意:** `bin.install` の設定が正しくないと、`No such file or directory` エラーの原因になります。
-
-6. **Formulaの変更をコミット**
-
-    ```bash
-    git add Formula/esa-cli.rb
-    git commit -m "build: Update Homebrew formula for vX.Y.Z"
-    ```
-
-</Steps>
-
-## 2. GitHubでのリリース作業
-
-<Steps>
-
-1. **タグの作成とプッシュ**
+    セマンティックバージョニングに従った新しいタグを作成し、プッシュします。
+    このプッシュがGitHub Actionsのリリースワークフローをトリガーします。
 
     ```bash
     git tag -a vX.Y.Z -m "Release vX.Y.Z"
     git push origin main --follow-tags
     ```
-
-2. **GitHubリリースを作成**
-    -   [リリースページ](https://github.com/shellme/esa-cli/releases)に移動し、「Draft a new release」をクリックします。
-    -   作成したタグ（`vX.Y.Z`）を選択します。
-    -   リリースタイトルとリリースノート（変更履歴など）を記述します。
-
-3. **バイナリの手動アップロード**
-    -   **🚨 最重要:** `make release` で作成した `esa-cli-darwin-universal.tar.gz` を、Assets欄にドラッグ＆ドロップして**手動でアップロード**します。
-    -   GitHubが自動生成する `Source code (zip/tar.gz)` だけでは、Homebrewはバイナリを見つけられません。
-
-4. **リリースを公開**
-    -   「Publish release」をクリックしてリリースを公開します。
+    <Aside type="note">
+      `v`から始まるタグ (`v1.2.3`など) をプッシュすると、リリースワークフローが自動的に開始されます。
+    </Aside>
 
 </Steps>
 
-## 3. Homebrew tapリポジトリの更新
+## 自動化されていること
+
+タグをプッシュすると、GitHub Actionsは以下の作業を自動的に行います。
+
+-   LinuxとmacOS用のバイナリをビルド
+-   macOS用のユニバーサルバイナリを作成 (`lipo`コマンドを使用)
+-   GitHub Releaseを新規作成
+-   すべてのバイナリ（ユニバーサルバイナリを含む）とチェックサムをAssetsにアップロード
+-   `homebrew-esa-cli`リポジトリのHomebrew Formula (`esa-cli.rb`) を自動で更新
+
+## リリース後の確認作業
 
 <Steps>
+1. **GitHub Actionsの確認**
 
-1. **homebrew-esa-cliリポジトリに移動**
+    [Actionsタブ](https://github.com/shellme/esa-cli/actions)で、リリースワークフローが正常に完了したことを確認します。
+
+2. **GitHubリリースの確認**
+
+    [リリースページ](https://github.com/shellme/esa-cli/releases)に移動し、以下を確認します。
+    -   新しいバージョンのリリースが作成されていること。
+    -   `esa-cli-darwin-universal.tar.gz`を含む、必要なすべてのアセットがアップロードされていること。
+
+3. **リリースノートの編集 (任意)**
+
+    自動生成されたChangelogだけでは不十分な場合、リリースノートを編集して、変更点の概要やユーザーへのメッセージを追加します。
+
+4. **Homebrewでのインストール確認**
+
+    リリースが反映されたことを確認するため、ローカル環境でHomebrewを使ってインストールまたはアップグレードを試します。
 
     ```bash
-    # 例
-    cd ../homebrew-esa-cli
+    brew update
+    brew upgrade esa-cli
+    # または再インストール
+    brew reinstall esa-cli
     ```
-
-2. **最新のFormulaファイルをコピー**
-
-    `esa-cli` 本体リポジトリから、更新した `esa-cli.rb` をコピーして上書きします。
-
-    ```bash
-    cp ../esa-cli/Formula/esa-cli.rb Formula/esa-cli.rb
-    ```
-
-3. **変更をコミットしてプッシュ**
-
-    ```bash
-    git add Formula/esa-cli.rb
-    git commit -m "Update esa-cli to vX.Y.Z"
-    git push origin main
-    ```
-
 </Steps>
 
-## 4. リリース後の確認とトラブルシューティング
+## トラブルシューティング
 
-リリースが完了したら、Homebrewで正しくインストールできるか確認します。
-
-```bash
-brew update
-brew upgrade esa-cli
-# または再インストール
-brew reinstall esa-cli
-```
-
-## よくある問題と解決策
-
-**エラー: `Failed to download resource "esa-cli"` (404 Not Found)**
-    -   **原因**: GitHubリリースのAssetsにバイナリ (`.tar.gz`) がアップロードされていません。
-    -   **解決策**: リリースページを編集し、バイナリを**手動でアップロード**してください。
-
-**エラー: `No such file or directory - esa-cli`**
-    -   **原因**: Formula内の `bin.install` で指定されたファイル名が、アーカイブ内のバイナリ名と一致していません。
-    -   **解決策**: `Formula/esa-cli.rb` の `bin.install` の記述を `bin.install "実際の名前" => "esa-cli"` のように修正し、両方のリポジトリを更新してください。
-
-**エラー: `Will not overwrite ... config.template`**
-    -   **原因**: 既存の設定ファイルが原因でHomebrewがインストールを中断しています。
-    -   **解決策**: 以下のコマンドで既存ファイルを削除し、再度 `reinstall` を試してください。
-        ```bash
-        rm /opt/homebrew/etc/esa-cli/config.template
-        brew reinstall esa-cli
-        ```
-**古いFormulaが参照されてしまう場合**
-    -   **原因**: Homebrewのキャッシュが古い情報を保持しています。
-    -   **解決策**: 以下のコマンドでキャッシュを削除してから、再度試してください。
-        ```bash
-        rm $(brew --cache)/esa-cli--*.tar.gz
-        ```
+**エラー: `Resource not accessible by integration`**
+-   **原因**: GitHubのパーソナルアクセストークン（PAT）が無効か、リポジトリのSecretsに正しく設定されていません。
+-   **解決策**:
+    1.  [PATの設定ページ](https://github.com/settings/tokens?type=beta)で、`repo`スコープを持つ有効なトークンが存在することを確認します。
+    2.  `esa-cli`リポジトリの[Secretsページ](https://github.com/shellme/esa-cli/settings/secrets/actions)で、`HOMEBREW_TAP_GITHUB_TOKEN`という名前のSecretにそのトークンが正しく設定されていることを確認します。
