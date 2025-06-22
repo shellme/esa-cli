@@ -1,420 +1,334 @@
 ---
 title: "トラブルシューティング"
-description: "esa-cliの問題解決ガイド"
+description: "esa-cliの詳細な問題解決ガイド"
 ---
 
-esa-cliの使用中に発生する可能性のある問題と、その解決方法を詳しく説明します。
+esa-cliの使用中に発生する技術的な問題と、その詳細な解決方法を説明します。基本的な問題については[よくある質問](/esa-cli/faq)もご確認ください。
 
-## インストールの問題
+## 📋 目次
 
-### Homebrewアップグレードエラー
+- [エラーコード別解決方法](#エラーコード別解決方法)
+- [高度な問題解決](#高度な問題解決)
+- [デバッグ情報の取得](#デバッグ情報の取得)
+- [サポート](#サポート)
 
-#### 症状
-- `brew upgrade esa-cli` で以下のエラーが発生する：
-```
-Error: An exception occurred within a child process:
-  RuntimeError: Will not overwrite /opt/homebrew/etc/esa-cli/config.template
-```
+## 🔧 エラーコード別解決方法
 
-#### 原因
-既存の設定ファイル（`config.template`）が存在するため、Homebrewが上書きを拒否している状態です。
+### HTTP 401 Unauthorized
 
-#### 解決手順
+**症状**: 認証エラーが発生する
 
-1. 既存の設定ファイルを削除
-```bash
-rm /opt/homebrew/etc/esa-cli/config.template
-```
+**詳細な解決手順**:
 
-2. アップグレードを再実行
-```bash
-brew upgrade esa-cli
-```
-
-#### 予防策
-このエラーは以下の場合に発生する可能性があります：
-- 初回インストール後のアップグレード時
-- 手動で設定ファイルを編集した場合
-- Formulaの変更があった場合
-
-通常、一度解決すれば今後のアップグレードでは発生しません。
-
-### インストールが完了しない
-
-#### 症状
-- `brew install` コマンドが失敗する
-- インストール中にエラーメッセージが表示される
-
-#### 解決手順
-
-1. 既存のインストールを削除
-```bash
-brew uninstall esa-cli
-```
-
-2. 再インストール
-```bash
-# tapが既に追加されている場合は直接インストール
-brew install shellme/esa-cli
-
-# もしくは、tapを明示的に追加してからインストール
-brew tap shellme/esa-cli
-brew install esa-cli
-```
-
-3. インストールの確認
-```bash
-esa-cli version
-```
-
-### コマンドが見つからない
-
-#### 症状
-- `esa-cli` コマンドを実行すると「command not found」エラーが表示される
-
-#### 解決手順
-
-1. パスの確認
-```bash
-echo $PATH
-```
-
-2. バイナリの場所を確認
-```bash
-which esa-cli
-```
-
-3. シェルの設定ファイルにパスを追加
-
-bashの場合：
-```bash
-echo 'export PATH="/usr/local/bin:$PATH"' >> ~/.bashrc
-source ~/.bashrc
-```
-
-zshの場合：
-```bash
-echo 'export PATH="/usr/local/bin:$PATH"' >> ~/.zshrc
-source ~/.zshrc
-```
-
-fishの場合：
-```fish
-echo 'set -gx PATH /usr/local/bin $PATH' >> ~/.config/fish/config.fish
-source ~/.config/fish/config.fish
-```
-
-## 認証の問題
-
-### アクセストークンが無効
-
-#### 症状
-- コマンド実行時に認証エラーが発生
-- `esa-cli setup` で設定したトークンが機能しない
-
-#### 解決手順
-
-1. 現在の設定を確認
+1. **現在の設定を確認**
 ```bash
 cat ~/.esa-cli-config.json
 ```
 
-2. 新しいトークンを生成
-   - esa.ioのアプリケーション設定ページにアクセス
+2. **トークンの権限を確認**
+   - esa.ioのアプリケーション設定ページで以下を確認：
+     - トークンが有効期限切れになっていないか
+     - 適切な権限（read/write）が設定されているか
+     - チーム名が正しく設定されているか
+
+3. **新しいトークンを生成**
    - 既存のトークンを削除
-   - 新しいトークンを生成
-
-3. 設定を更新
+   - 新しいトークンを生成（権限はread/write）
+   - 設定を再実行
 ```bash
 esa-cli setup
 ```
 
-## 記事の操作に関する問題
-
-### 記事の更新が反映されない
-
-#### 症状
-- `esa-cli update` を実行しても記事が更新されない
-- エラーメッセージが表示される
-
-#### 解決手順
-
-1. ファイル名の確認
-   - 正しい形式: `記事番号-タイトル.md`
-   - 例: `123-my-article.md`
-
-2. Front Matterの確認
-```markdown
----
-title: 記事のタイトル
-category: カテゴリ
-tags: [tag1, tag2]
-wip: false
----
+4. **設定ファイルの権限を確認**
+```bash
+ls -la ~/.esa-cli-config.json
+chmod 600 ~/.esa-cli-config.json
 ```
 
-3. ネットワーク接続の確認
+### HTTP 404 Not Found
+
+**症状**: 記事やリソースが見つからない
+
+**詳細な解決手順**:
+
+1. **記事の存在確認**
 ```bash
-ping esa.io
+# 全記事を検索
+esa-cli list --query "記事タイトル"
+
+# 特定のカテゴリで検索
+esa-cli list --category "カテゴリ名"
 ```
 
-4. 記事の存在確認
+2. **権限の確認**
+   - 記事がプライベート記事でないか
+   - チームのメンバー権限があるか
+   - 記事が削除されていないか
+
+3. **URLの確認**
+   - チーム名が正しいか確認
+   - 記事番号が正しいか確認
+
+### HTTP 403 Forbidden
+
+**症状**: アクセス権限がない
+
+**詳細な解決手順**:
+
+1. **チームの権限を確認**
+   - esa.ioのWebインターフェースでチームメンバー権限を確認
+   - 管理者に権限の確認を依頼
+
+2. **記事の権限を確認**
+   - 記事がロックされていないか
+   - 編集権限があるか
+
+### HTTP 429 Too Many Requests
+
+**症状**: API制限に達した
+
+**詳細な解決手順**:
+
+1. **リクエスト頻度を確認**
+   - 短時間での大量リクエストを避ける
+   - バッチ処理の間隔を調整
+
+2. **一時的な回避策**
 ```bash
-esa-cli list | grep 記事番号
-```
+# 処理を一時停止
+sleep 60
 
-### 記事のダウンロードに失敗
-
-#### 症状
-- `esa-cli fetch` で記事をダウンロードできない
-- ダウンロードしたファイルが破損している
-
-#### 解決手順
-
-1. 記事番号の確認
-```bash
+# 再実行
 esa-cli list
 ```
 
-2. 一時ファイルの削除
+3. **処理件数を制限**
 ```bash
-rm -f *-article-title.md
+# 一度に処理する件数を制限
+esa-cli list 5
 ```
 
-3. 再ダウンロード
+### HTTP 500 Internal Server Error
+
+**症状**: esa.ioのサーバーエラー
+
+**詳細な解決手順**:
+
+1. **esa.ioのステータスを確認**
+   - [esa.io Status](https://status.esa.io) でサービス状況を確認
+
+2. **再試行**
 ```bash
-esa-cli fetch 記事番号
-```
-
-## その他の問題
-
-### 通知が表示されない
-
-#### 症状
-- 記事のダウンロードや更新時に通知が表示されない
-
-#### 解決手順
-
-1. 通知の権限を確認
-   - システム環境設定 > 通知
-   - ターミナルの通知を許可
-
-2. 通知のテスト
-```bash
-esa-cli fetch 1
-```
-
-## 関連ドキュメント
-
-- [よくある質問](/esa-cli/faq) - 一般的な質問と回答
-- [初期設定と基本操作](/esa-cli/getting-started/first-steps) - 基本的な使い方
-- [コマンドリファレンス](/esa-cli/commands) - コマンドの詳細な説明
-
-## よくある問題と解決方法
-
-### コマンドが見つからない
-
-**問題**: `esa-cli: command not found` エラーが発生する
-
-**解決方法**:
-1. インストールが完了しているか確認
-```bash
-which esa-cli
-```
-
-2. パスが正しく設定されているか確認
-```bash
-echo $PATH
-```
-
-3. 必要に応じてパスを追加
-```bash
-# bash/zshの場合
-export PATH="/usr/local/bin:$PATH"
-
-# fishの場合
-set -gx PATH /usr/local/bin $PATH
-```
-
-### オプションが認識されない
-
-**問題**: `unknown flag` エラーが発生する
-
-**原因**: 古いオプション形式を使用している
-
-**解決方法**: 新しいオプション形式を使用する
-
-```bash
-# 古い形式（非推奨）
-esa-cli list -category 開発
-
-# 新しい形式（推奨）
-esa-cli list -c 開発
-esa-cli list --category 開発
-```
-
-**正しいオプション形式**:
-- `-c, --category` - カテゴリでフィルタ
-- `-t, --tag` - タグでフィルタ
-- `-q, --query` - 検索キーワード
-- `-u, --user` - 作成者でフィルタ
-- `-l, --latest` - 最新記事を取得
-- `-m, --message` - メッセージを指定
-- `-n, --no-wip` - WIP状態を解除
-- `-a, --add-tags` - タグを追加
-- `-r, --remove-tags` - タグを削除
-- `-o, --to` - 移動先カテゴリ
-- `-f, --force` - 確認なしで実行
-
-### 認証エラー
-
-**問題**: `401 Unauthorized` エラーが発生する
-
-**原因**: アクセストークンが無効または期限切れ
-
-**解決方法**:
-1. 新しいアクセストークンを生成
-2. 設定を再実行
-```bash
-esa-cli setup
-```
-
-### 記事が見つからない
-
-**問題**: `404 Not Found` エラーが発生する
-
-**原因**:
-- 記事番号が間違っている
-- 記事が削除されている
-- 権限がない
-
-**解決方法**:
-1. 記事番号を確認
-```bash
+# 少し待ってから再実行
+sleep 30
 esa-cli list
 ```
 
-2. 権限を確認
-3. 記事が存在するか確認
-
-### リモート変更チェックの警告
-
-**問題**: 更新時に「リモートの記事は更新されています」と警告が出る
-
-**原因**: 他の人が記事を更新した
-
-**解決方法**:
-1. 警告を確認
-2. 必要に応じて最新状態を取得
+3. **キャッシュのクリア**
 ```bash
-esa-cli fetch <記事番号>
+# 一時ファイルを削除
+rm -f ~/.esa-cli-cache/*
 ```
 
-3. 競合を解決してから更新
-
-### 一括移動での問題
-
-**問題**: `esa-cli move` でエラーが発生する
-
-**原因**:
-- 移動先カテゴリが指定されていない
-- 移動対象の記事が見つからない
-- 権限がない
-
-**解決方法**:
-1. 必須オプションを確認
-```bash
-# 移動先カテゴリは必須
-esa-cli move -o 移動先カテゴリ
-esa-cli move --to 移動先カテゴリ
-```
-
-2. 移動対象の記事が存在するか確認
-```bash
-esa-cli list -c 元カテゴリ -u 自分のユーザー名
-```
-
-3. 権限を確認
-
-### ファイル名の問題
-
-**問題**: 更新時にファイル名エラーが発生する
-
-**原因**: ファイル名が正しい形式でない
-
-**解決方法**: ファイル名を正しい形式にする
-```
-正しい形式: <記事番号>-<タイトル>.md
-例: 123-article-title.md
-```
-
-### ネットワークエラー
-
-**問題**: ネットワーク接続エラーが発生する
-
-**原因**:
-- インターネット接続の問題
-- esa.ioのサービス障害
-- プロキシ設定の問題
-
-**解決方法**:
-1. インターネット接続を確認
-2. esa.ioのステータスを確認
-3. プロキシ設定を確認
+## 🔍 高度な問題解決
 
 ### パフォーマンスの問題
 
-**問題**: コマンドの実行が遅い
+**症状**: コマンドの実行が異常に遅い
 
-**原因**:
-- 大量の記事を処理している
-- ネットワークが遅い
-- システムリソースが不足
+**詳細な診断と解決**:
 
-**解決方法**:
-1. 処理件数を制限
+1. **ネットワーク診断**
 ```bash
-esa-cli list 10  # 10件に制限
+# レスポンス時間を測定
+curl -w "@-" -o /dev/null -s "https://{your-team}.esa.io" <<'EOF'
+     time_namelookup:  %{time_namelookup}\n
+        time_connect:  %{time_connect}\n
+     time_appconnect:  %{time_appconnect}\n
+    time_pretransfer:  %{time_pretransfer}\n
+       time_redirect:  %{time_redirect}\n
+  time_starttransfer:  %{time_starttransfer}\n
+                     ----------\n
+          time_total:  %{time_total}\n
+EOF
 ```
 
-2. フィルタリングを活用
+2. **システムリソースの確認**
 ```bash
-esa-cli list -c 特定カテゴリ  # カテゴリで絞り込み
+# CPU使用率
+top -l 1 | grep "CPU usage"
+
+# メモリ使用率
+vm_stat | perl -ne '/page size of (\d+)/ and $size=$1; /Pages free: (\d+)/ and printf "Free: %.1f MB\n", $1 * $size / 1048576'
 ```
 
-3. システムリソースを確認
-
-## デバッグ情報の取得
-
-問題の詳細を確認するには、以下の情報を収集してください：
-
-1. **バージョン情報**
+3. **最適化の実践**
 ```bash
-esa-cli version
+# フィルタリングを活用
+esa-cli list --category "特定カテゴリ" --user "自分のユーザー名"
+
+# 処理件数を制限
+esa-cli list 10
+
+# バックグラウンド処理
+nohup esa-cli update-all --category "開発" > update.log 2>&1 &
 ```
 
-2. **設定情報**
+### ファイルシステムの問題
+
+**症状**: ファイルの読み書きでエラーが発生
+
+**詳細な解決手順**:
+
+1. **ディスク容量の確認**
 ```bash
-cat ~/.esa-cli-config.json
+df -h
 ```
 
-3. **システム情報**
+2. **ファイル権限の確認**
 ```bash
+ls -la *.md
+chmod 644 *.md
+```
+
+3. **ファイルの整合性確認**
+```bash
+# 破損したファイルを検出
+find . -name "*.md" -exec file {} \;
+
+# 空のファイルを検出
+find . -name "*.md" -size 0
+```
+
+### ネットワーク接続の問題
+
+**症状**: ネットワークエラーが頻繁に発生
+
+**詳細な診断**:
+
+1. **DNS解決の確認**
+```bash
+nslookup {your-team}.esa.io
+dig {your-team}.esa.io
+```
+
+2. **プロキシ設定の確認**
+```bash
+echo $http_proxy
+echo $https_proxy
+echo $no_proxy
+```
+
+3. **ファイアウォールの確認**
+```bash
+# macOSの場合
+sudo pfctl -s rules
+```
+
+4. **VPN接続の影響確認**
+   - VPN接続時にesa.ioへのアクセスが制限されていないか
+   - 企業ネットワークの制限がないか
+
+### 設定ファイルの問題
+
+**症状**: 設定が正しく読み込まれない
+
+**詳細な解決手順**:
+
+1. **設定ファイルの構文確認**
+```bash
+# YAMLの構文チェック
+python3 -c "import yaml; yaml.safe_load(open('~/.esa-cli/config.yaml'))"
+```
+
+2. **設定ファイルのバックアップと復元**
+```bash
+# バックアップ
+cp ~/.esa-cli-config.json ~/.esa-cli-config.json.backup
+
+# 設定をリセット
+rm ~/.esa-cli-config.json
+esa-cli setup
+```
+
+3. **環境変数の確認**
+```bash
+env | grep ESA
+```
+
+## 🔬 デバッグ情報の取得
+
+問題の詳細な分析には、以下の情報を収集してください：
+
+### 1. システム情報
+```bash
+# OS情報
 uname -a
+sw_vers
+
+# Go環境
 go version
+go env
+
+# シェル情報
+echo $SHELL
+echo $PATH
 ```
 
-4. **ネットワーク接続**
+### 2. esa-cli情報
 ```bash
-curl -I https://{your-team}.esa.io
+# バージョン情報
+esa-cli version
+
+# 設定情報（機密情報は除く）
+cat ~/.esa-cli-config.json | jq 'del(.access_token)'
 ```
 
-## サポート
+### 3. ネットワーク情報
+```bash
+# 接続テスト
+curl -I https://{your-team}.esa.io
+
+# 詳細な接続情報
+curl -v https://{your-team}.esa.io/api/v1/teams
+```
+
+### 4. ログ情報
+```bash
+# システムログ（macOS）
+log show --predicate 'process == "esa-cli"' --last 1h
+
+# アプリケーションログ
+find ~/Library/Logs -name "*esa*" -type f
+```
+
+## 📞 サポート
 
 問題が解決しない場合は、以下の情報とともにGitHub Issuesで報告してください：
 
-- エラーメッセージの全文
-- 実行したコマンド
-- バージョン情報
-- システム情報
-- 設定ファイル（機密情報は除く） 
+### 必須情報
+- **エラーメッセージの全文**
+- **実行したコマンド**
+- **esa-cliのバージョン**: `esa-cli version`
+- **OS情報**: `uname -a`
+- **Goバージョン**: `go version`
+
+### 推奨情報
+- **設定ファイル**（アクセストークンは除く）
+- **ネットワーク接続情報**
+- **再現手順**
+- **期待される動作**
+
+### 報告先
+- [GitHub Issues](https://github.com/shellme/esa-cli/issues)
+- タイトルには `[Bug]` または `[Question]` を付けてください
+
+:::tip[ヒント]
+問題を報告する前に、[よくある質問](/esa-cli/faq)で同様の問題がないか確認してください。
+:::
+
+## 📚 関連ドキュメント
+
+- [よくある質問](/esa-cli/faq) - 基本的な問題と解決方法
+- [初期設定と基本操作](/esa-cli/getting-started/first-steps) - 基本的な使い方
+- [コマンド一覧](/esa-cli/commands) - 全コマンドの詳細説明 

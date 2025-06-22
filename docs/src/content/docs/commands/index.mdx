@@ -1,133 +1,104 @@
 ---
-title: "コマンドリファレンス"
-description: "esa-cliのコマンドと設定の詳細な仕様"
+title: "コマンド一覧"
+description: "esa-cliのコマンド一覧と学習順序"
 ---
 
-esa-cliのコマンドと設定の詳細な仕様です。実践的な使用例については「ユーザーガイド」や「基本的な使い方」を参照してください。
+import { Aside } from '@astrojs/starlight/components';
+
+esa-cliのコマンド一覧です。学習順序に従って段階的にコマンドを学ぶことができます。
+
+## 学習順序
+
+初めての方には以下の順序で学習することをお勧めします：
+
+1. **[初期設定](/esa-cli/commands/setup)** - 最初に実行する必要があります
+2. **[記事一覧](/esa-cli/commands/list)** - 記事の確認から始めましょう
+3. **[記事取得](/esa-cli/commands/fetch)** - 記事のダウンロードを学びましょう
+4. **[記事更新](/esa-cli/commands/update)** - 記事の更新を学びましょう
+5. **[記事一括移動](/esa-cli/commands/move)** - 一括処理を学びましょう
+
+<Aside type="tip" title="段階的な学習">
+各コマンドは段階的に学習できるよう構成されています。基本的なコマンド（1-4）をマスターしてから高度なコマンド（5）に進むことをお勧めします。
+</Aside>
 
 ## コマンド一覧
 
-### `esa-cli setup`
+### 基本コマンド
 
-初期設定を行います。
+| コマンド | 説明 | 詳細 |
+|---------|------|------|
+| `setup` | 初期設定 | [詳細を見る](/esa-cli/commands/setup) |
+| `list` | 記事一覧表示 | [詳細を見る](/esa-cli/commands/list) |
+| `fetch` | 記事ダウンロード | [詳細を見る](/esa-cli/commands/fetch) |
+| `update` | 記事更新 | [詳細を見る](/esa-cli/commands/update) |
 
-```bash
-esa-cli setup
-```
+### 高度なコマンド
 
-#### オプション
-- `-team` - チーム名を指定
-- `-token` - アクセストークンを指定
+| コマンド | 説明 | 詳細 |
+|---------|------|------|
+| `move` | 記事一括移動 | [詳細を見る](/esa-cli/commands/move) |
+| `fetch-all` | 記事一括ダウンロード | 下記参照 |
+| `update-all` | 記事一括更新 | 下記参照 |
 
-#### 設定ファイルの生成
-このコマンドは `~/.esa-cli-config.json` に設定ファイルを生成します。
+### 一括処理コマンド
 
-### `esa-cli list`
+#### `fetch-all`
 
-記事一覧を表示します。
-
-```bash
-esa-cli list [count]
-```
-
-#### オプション
-- `count` - 表示する記事数（デフォルト: 10）
-- `-c, --category` - カテゴリでフィルタ（例: "開発/ドキュメント"）
-- `-t, --tag` - タグでフィルタ（例: "API"）
-- `-q, --query` - 検索キーワード
-- `-u, --user` - 作成者でフィルタ（例: "自分のユーザー名"）
-
-#### 出力形式
-記事は以下の形式で表示されます：
-```
-[記事番号] タイトル
-カテゴリ: カテゴリ名
-タグ: タグ1, タグ2
-更新日時: YYYY-MM-DD HH:MM:SS
-```
-
-### `esa-cli fetch`
-
-記事をダウンロードします。
+条件に一致する記事を一括でダウンロードします。
 
 ```bash
-esa-cli fetch <article_number>
+esa-cli fetch-all [オプション]
 ```
 
-#### オプション
-- `-c, --category` - カテゴリでフィルタ
-- `-t, --tag` - タグでフィルタ
-- `-q, --query` - 検索ワードでフィルタ
-- `-u, --user` - 作成者でフィルタ
-- `-l, --latest` - 最新の記事をダウンロード
+**主なオプション:**
+- `--category` - カテゴリでフィルタ
+- `--tag` - タグでフィルタ
+- `--query` - 検索ワードでフィルタ
+- `--user` - 作成者でフィルタ
+- `--limit` - 取得件数制限（デフォルト: 10）
 
-#### ファイル形式
-記事はMarkdown形式で保存され、以下の命名規則に従います：
-```
-<article_number>-<article-title>.md
-```
+**使用例:**
+```bash
+# 特定のカテゴリの記事を一括ダウンロード
+esa-cli fetch-all --category 開発
 
-#### ファイル構造
-```markdown
----
-title: 記事のタイトル
-category: カテゴリ
-tags: [tag1, tag2]
-wip: false
-remote_updated_at: "2025-06-21T09:32:41+09:00"
----
+# 特定のタグの記事を一括ダウンロード
+esa-cli fetch-all --tag API
 
-記事の本文...
+# 取得件数を制限して一括ダウンロード
+esa-cli fetch-all --category 開発 --limit 5
 ```
 
-### `esa-cli update`
+#### `update-all`
 
-記事を更新します。
+複数の記事を一括で更新します。
 
 ```bash
-esa-cli update <file_path>
+esa-cli update-all [パターン] [オプション]
 ```
 
-#### オプション
-- `-m, --message` - 更新メッセージ（変更履歴に表示）
-- `-n, --no-wip` - WIP状態を解除
-- `-c, --category` - カテゴリを変更
-- `-a, --add-tags` - タグを追加（カンマ区切り）
-- `-r, --remove-tags` - タグを削除（カンマ区切り）
+**主なオプション:**
+- `pattern` - ファイルパターン（例: "123-*.md"、デフォルト: "*.md"）
+- `--message` - 更新メッセージ
+- `--no-wip` - WIP状態を解除
+- `--category` - カテゴリを変更
+- `--force` - 確認なしで実行
 
-#### ファイル名の規則
-更新対象のファイル名は以下の形式である必要があります：
-```
-<article_number>-<article-title>.md
-```
-
-#### リモート変更チェック
-ローカルで編集を開始した後にリモート記事が更新された場合、上書き前に警告を表示します。チーム作業での競合を防ぐことができます。
-
-**警告例：**
-```
-⚠️  警告: リモートの記事はローカルで編集を始めてから更新されています。
-  リモート: 2025-06-22 14:01:45
-  ローカル: 2025-06-21 09:32:41
-このまま上書きしますか？ (y/N):
-```
-
-### `esa-cli move`
-
-記事を一括でカテゴリ移動します。
-
+**使用例:**
 ```bash
-esa-cli move
+# 現在のディレクトリの全記事を一括更新
+esa-cli update-all
+
+# 特定のパターンの記事を一括更新
+esa-cli update-all "123-*.md"
+
+# 確認なしで一括更新
+esa-cli update-all --force
 ```
 
-#### オプション
-- `-c, --category` - 移動元のカテゴリ
-- `-u, --user` - 作成者でフィルタリング
-- `-q, --query` - 検索ワードでフィルタリング
-- `-t, --tag` - タグでフィルタリング
-- `-o, --to` - 移動先のカテゴリ（必須）
-- `-m, --message` - 移動メッセージ
-- `-f, --force` - 確認なしで実行
+<Aside type="tip" title="実践的な使い方">
+実践的な使用例については[基本的な使い方](/esa-cli/guides/basic-usage)と[高度な使い方](/esa-cli/guides/advanced-usage)を参照してください。
+</Aside>
 
 ## 設定ファイル
 

@@ -3,7 +3,7 @@ title: "基本的な使い方"
 description: "esa-cliの基本的なコマンド使用例"
 ---
 
-初めての方でも迷わず使えるよう、よく使うコマンドとそのユースケースを紹介します。
+初めての方でも迷わず使えるよう、よく使うコマンドを紹介します。
 
 ## 記事の一覧表示
 
@@ -14,9 +14,10 @@ esa-cli list
 
 カテゴリやタグで絞り込みも可能です。
 ```bash
-esa-cli list -c "開発/ドキュメント"
+# カテゴリで絞り込み
 esa-cli list --category "開発/ドキュメント"
-esa-cli list -t "API"
+
+# タグで絞り込み
 esa-cli list --tag "API"
 ```
 
@@ -24,7 +25,6 @@ esa-cli list --tag "API"
 
 タイトルや本文にキーワードを含む記事を検索できます。
 ```bash
-esa-cli list -q "検索キーワード"
 esa-cli list --query "検索キーワード"
 ```
 
@@ -32,7 +32,6 @@ esa-cli list --query "検索キーワード"
 
 自分が作成した記事を絞り込んで表示できます。
 ```bash
-esa-cli list -u "自分のユーザー名"
 esa-cli list --user "自分のユーザー名"
 ```
 
@@ -45,7 +44,6 @@ esa-cli fetch 123
 
 フィルタリングと組み合わせて最新記事をダウンロードできます。
 ```bash
-esa-cli fetch -c 開発 -l
 esa-cli fetch --category 開発 --latest
 ```
 
@@ -58,16 +56,11 @@ esa-cli update 123-article-title.md
 
 オプションを組み合わせて効率的に更新できます。
 ```bash
-esa-cli update 123-article-title.md -c 開発 -m "カテゴリを変更"
+# 123-article-title.md を開発カテゴリに変更して更新
 esa-cli update 123-article-title.md --category 開発 --message "カテゴリを変更"
-```
 
-## 記事の一括移動
-
-特定の条件で記事を一括でカテゴリ移動できます。
-```bash
-esa-cli move -c 開発 -o デザイン -u 自分のユーザー名
-esa-cli move --category 開発 --to デザイン --user 自分のユーザー名
+# WIP状態を解除して更新
+esa-cli update 123-article-title.md --no-wip
 ```
 
 ## リモート変更の安全な更新
@@ -86,7 +79,16 @@ esa-cli update 123-article-title.md
 
 ## カテゴリ・タグの活用
 
-記事作成や更新時に `-category` や `-tag` オプションを使うことで、記事を整理できます。
+記事作成や更新時に `--category` や `--tag` オプションを使うことで、記事を整理できます。
+
+## 次のステップ
+
+基本的な操作に慣れたら、以下の機能を試してみてください：
+
+- **一括処理**: [高度な使い方](/esa-cli/guides/advanced-usage)で一括ダウンロード・更新を学ぶ
+- **記事の整理**: カテゴリの一括移動で記事を効率的に整理
+- **自動化**: シェルスクリプトでの自動化例を参考にする
+- **実務シナリオ**: 日報のアーカイブ化や本文の一括修正など、実務でよく使うパターンを参考にする
 
 ## ユースケース
 
@@ -94,4 +96,4 @@ esa-cli update 123-article-title.md
 - **ナレッジ共有**: チームのTipsや手順書を素早く投稿・更新
 - **定期バックアップ**: 記事を定期的にローカルへダウンロード
 
-詳細なコマンド仕様や高度な使い方は[コマンドリファレンス](/esa-cli/commands)や[高度な使い方](/esa-cli/guides/advanced-usage)を参照してください。 
+詳細なコマンド仕様は[コマンドリファレンス](/esa-cli/commands)を参照してください。 

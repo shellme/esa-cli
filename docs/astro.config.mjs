@@ -42,6 +42,7 @@ export default defineConfig({
 						{ label: '記事一覧', link: '/commands/list' },
 						{ label: '記事取得', link: '/commands/fetch' },
 						{ label: '記事更新', link: '/commands/update' },
+						{ label: '記事一括移動', link: '/commands/move' },
 					]
 				},
 				{

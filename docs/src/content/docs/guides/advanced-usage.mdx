@@ -5,114 +5,58 @@ description: "esa-cliの高度なコマンド使用例と実践的なシナリ�
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-ドキュメント管理やナレッジ共有をさらに効率化するために、カテゴリ・タグの活用や一括処理など、実務で役立つ高度な操作例を紹介します。
+基本的な操作に慣れた方向けに、実務で役立つ高度な機能と具体的な活用例を紹介します。
 
-## カテゴリ・タグで絞り込み
+## 一括処理で効率化
 
-<Tabs>
-  <TabItem label="カテゴリで絞り込み">
-    ```bash
-    esa-cli list -category "開発/設計"
-    ```
-  </TabItem>
+### 記事の一括ダウンロード
 
-  <TabItem label="タグで絞り込み">
-    ```bash
-    esa-cli list -tag "API"
-    ```
-  </TabItem>
-</Tabs>
-
-## 一括ダウンロード＆一括更新
-
-カテゴリやタグで絞り込んで記事を一括ダウンロードしたり、一括更新したりできます。  
-「カテゴリやタグで絞り込んだ記事の大規模なリネーム」「一括でタグや本文を修正したい」など、さまざまな場面で活用できます。
-
-
-### 記事を一括ダウンロード
-
-カレントディレクトリに `記事番号-タイトル.md` 形式のMarkdownファイルが一括保存されます。
+条件に一致する記事を一括でダウンロードできます。
 
 <Tabs>
   <TabItem label="カテゴリで指定">
     ```bash
-    esa-cli list -category "開発/設計" | cut -d':' -f1 | while read -r article_id; do
-      esa-cli fetch "$article_id"
-    done
+    esa-cli fetch-all --category "開発/設計"
     ```
   </TabItem>
   <TabItem label="タグで指定">
     ```bash
-    esa-cli list -tag "重要" | cut -d':' -f1 | while read -r article_id; do
-      esa-cli fetch "$article_id"
-    done
+    esa-cli fetch-all --tag "API"
     ```
   </TabItem>
-  <TabItem label="最新記事をダウンロード">
+  <TabItem label="取得件数を制限">
     ```bash
-    # 特定のカテゴリの最新記事をダウンロード
-    esa-cli fetch -category "開発/設計" -latest
+    # 特定のカテゴリの最新5件をダウンロード
+    esa-cli fetch-all --category "開発/設計" --limit 5
     
-    # 特定のタグの最新記事をダウンロード
-    esa-cli fetch -tag "重要" -latest
+    # 特定のタグの最新3件をダウンロード
+    esa-cli fetch-all --tag "重要" --limit 3
     ```
   </TabItem>
-  <TabItem label="より安全な方法">
+  <TabItem label="複数条件で絞り込み">
     ```bash
-    esa-cli list -category "開発/設計" | while read -r line; do
-      article_id=$(echo "$line" | cut -d':' -f1 | tr -d ' ')
-      if [[ "$article_id" =~ ^[0-9]+$ ]]; then
-        esa-cli fetch "$article_id"
-      fi
-    done
+    # カテゴリと作成者の組み合わせ
+    esa-cli fetch-all --category "開発/設計" --user "自分のユーザー名"
+    
+    # タグと検索ワードの組み合わせ
+    esa-cli fetch-all --tag "API" --query "認証"
     ```
   </TabItem>
 </Tabs>
 
-### 一括で再アップロード（更新）
+### 記事の一括更新
 
-ファイル名が `記事番号-タイトル.md` 形式であれば、そのまま一括で更新できます。
-
-```bash
-for file in *.md; do
-  esa-cli update "$file"
-done
-```
-
-## バックアップ・リストア
-
-**毎日のバックアップスクリプト例**
-```bash
-#!/bin/bash
-DATE=$(date +%Y%m%d)
-BACKUP_DIR="./backup/$DATE"
-mkdir -p "$BACKUP_DIR"
-
-# 全記事をバックアップ
-esa-cli list | cut -d':' -f1 | while read -r article_id; do
-  esa-cli fetch "$article_id"
-done
-
-# ダウンロードしたファイルをバックアップディレクトリに移動
-mv *-*.md "$BACKUP_DIR"
-```
-
-## 複数条件での絞り込み
-
-カテゴリ、タグ、作成者、検索ワードを組み合わせて記事を絞り込めます。
+複数の記事を一括で更新できます。
 
 ```bash
-# カテゴリとタグの組み合わせ
-esa-cli list -c 開発 -t API
-esa-cli list --category 開発 --tag API
+# 現在のディレクトリの全記事を一括更新
+esa-cli update-all
 
-# 作成者とカテゴリの組み合わせ
-esa-cli list -c 開発 -u 自分のユーザー名
-esa-cli list --category 開発 --user 自分のユーザー名
+# 特定のパターンの記事を一括更新
+esa-cli update-all "123-*.md"
 
-# 検索ワードとタグの組み合わせ
-esa-cli list -q 認証 -t API
-esa-cli list --query 認証 --tag API
+# 確認なしで一括更新
+esa-cli update-all --force
 ```
 
 ## 効率的な記事管理
@@ -123,34 +67,25 @@ esa-cli list --query 認証 --tag API
 
 ```bash
 # 開発カテゴリの最新記事をダウンロード
-esa-cli fetch -c 開発 -l
 esa-cli fetch --category 開発 --latest
 
 # 自分が作成したAPI関連の最新記事をダウンロード
-esa-cli fetch -t API -u 自分のユーザー名 -l
 esa-cli fetch --tag API --user 自分のユーザー名 --latest
 ```
 
-### 一括更新の効率化
+### 複数条件での絞り込み
 
-複数の記事を効率的に更新できます。
+カテゴリ、タグ、作成者、検索ワードを組み合わせて記事を絞り込めます。
 
 ```bash
-# カテゴリを変更して更新
-esa-cli update 123-article-title.md -c 開発
-esa-cli update 123-article-title.md --category 開発
+# カテゴリとタグの組み合わせ
+esa-cli list --category 開発 --tag API
 
-# タグを追加して更新
-esa-cli update 123-article-title.md -a API,認証
-esa-cli update 123-article-title.md --add-tags API,認証
+# 作成者とカテゴリの組み合わせ
+esa-cli list --category 開発 --user 自分のユーザー名
 
-# タグを削除して更新
-esa-cli update 123-article-title.md -r 古いタグ
-esa-cli update 123-article-title.md --remove-tags 古いタグ
-
-# WIP状態を解除して更新
-esa-cli update 123-article-title.md -n
-esa-cli update 123-article-title.md --no-wip
+# 検索ワードとタグの組み合わせ
+esa-cli list --query 認証 --tag API
 ```
 
 ## 記事の一括整理
@@ -161,11 +96,9 @@ esa-cli update 123-article-title.md --no-wip
 
 ```bash
 # 開発完了した記事をドキュメントカテゴリに移動
-esa-cli move -c 開発 -o ドキュメント -u 自分のユーザー名
 esa-cli move --category 開発 --to ドキュメント --user 自分のユーザー名
 
 # 複数条件で絞り込んで移動
-esa-cli move -c 開発 -t API -u 自分のユーザー名 -o ドキュメント
 esa-cli move --category 開発 --tag API --user 自分のユーザー名 --to ドキュメント
 ```
 
@@ -175,13 +108,201 @@ esa-cli move --category 開発 --tag API --user 自分のユーザー名 --to �
 
 ```bash
 # 確認なしで強制実行
-esa-cli move -c 開発 -o ドキュメント -u 自分のユーザー名 -f
 esa-cli move --category 開発 --to ドキュメント --user 自分のユーザー名 --force
 
 # カスタムメッセージ付きで移動
-esa-cli move -c 開発 -o ドキュメント -u 自分のユーザー名 -m リファクタリング完了
 esa-cli move --category 開発 --to ドキュメント --user 自分のユーザー名 --message リファクタリング完了
 ```
+
+## 実務での活用シナリオ
+
+### シナリオ1: プロジェクト完了時の記事整理
+
+**状況**: 開発プロジェクトが完了し、関連記事をドキュメントカテゴリに移動したい
+
+```bash
+# 1. 開発カテゴリの記事を一括ダウンロード
+esa-cli fetch-all --category 開発 --user 自分のユーザー名
+
+# 2. 記事を確認・編集
+# （必要に応じて記事の内容を更新）
+
+# 3. 一括でドキュメントカテゴリに移動
+esa-cli move --category 開発 --to ドキュメント --user 自分のユーザー名 --message "プロジェクト完了による移動"
+```
+
+### シナリオ2: 定期バックアップの自動化
+
+**状況**: 毎日の記事バックアップを自動化したい
+
+```bash
+#!/bin/bash
+# daily-backup.sh
+
+DATE=$(date +%Y%m%d)
+BACKUP_DIR="./backup/$DATE"
+mkdir -p "$BACKUP_DIR"
+
+echo "📅 $DATE のバックアップを開始..."
+
+# 全記事をバックアップ（最新100件）
+esa-cli fetch-all --limit 100
+
+# ダウンロードしたファイルをバックアップディレクトリに移動
+mv *-*.md "$BACKUP_DIR"
+
+echo "✅ バックアップ完了: $BACKUP_DIR"
+```
+
+### シナリオ3: チーム作業での安全な更新
+
+**状況**: チームで記事を編集する際の競合を防ぎたい
+
+```bash
+# 1. 作業前に最新状態を取得
+esa-cli fetch 123
+
+# 2. 記事を編集
+# （エディタで記事を編集）
+
+# 3. 更新時にリモート変更をチェック
+esa-cli update 123-article-title.md --message "API仕様を更新"
+
+# 4. 警告が出た場合は最新状態を再取得
+esa-cli fetch 123
+# （競合を解決してから再更新）
+```
+
+### シナリオ4: タグの一括管理
+
+**状況**: 古いタグを新しいタグに一括変更したい
+
+```bash
+# 1. 古いタグの記事を一括ダウンロード
+esa-cli fetch-all --tag "古いタグ"
+
+# 2. 各記事でタグを更新
+for file in *-*.md; do
+  # ファイル内のタグを置換
+  sed -i 's/古いタグ/新しいタグ/g' "$file"
+  
+  # 記事を更新
+  esa-cli update "$file" --message "タグを更新"
+done
+```
+
+### シナリオ5: 日報のアーカイブ化
+
+**状況**: 日報カテゴリから自分が書いた記事をアーカイブディレクトリに移動したい
+
+```bash
+# 日報カテゴリから自分が書いた記事をアーカイブに移動
+esa-cli move --category 日報 --to Archived/日報 --user 自分のユーザー名 --message "日報のアーカイブ化"
+
+# 確認なしで強制実行
+esa-cli move --category 日報 --to Archived/日報 --user 自分のユーザー名 --force
+```
+
+> **📝 注記**: 記事の一括削除機能は現在実装されていません。esa.ioのAPIには削除機能がありますが、CLIツールでは安全のため削除機能は提供していません。記事の削除が必要な場合は、esa.ioのWebインターフェースから手動で行ってください。
+
+### シナリオ6: 本文の一括修正
+
+**状況**: 特定の文字列が含まれる記事を一括で修正したい
+
+```bash
+# 1. 修正対象の記事を一括ダウンロード
+esa-cli fetch-all --query "古い会社名"
+
+# 2. ファイル内の文字列を一括置換
+# 必要に応じて記事の内容を更新（例: 古い会社名を新しい会社名に置換）
+# エディタで一括置換することをお勧めします。
+
+# 3. 修正した記事を一括更新
+esa-cli update-all --message "会社名を更新"
+
+# 確認なしで強制実行
+esa-cli update-all --force --message "会社名を更新"
+```
+
+### シナリオ7: プロジェクト完了時の記事整理
+
+**状況**: 開発プロジェクトが完了し、関連記事をドキュメントカテゴリに移動したい
+
+```bash
+# 1. 開発カテゴリの記事を一括ダウンロード
+esa-cli fetch-all --category 開発 --user 自分のユーザー名
+
+# 2. 記事を確認・編集
+# （必要に応じて記事の内容を更新）
+
+# 3. 一括でドキュメントカテゴリに移動
+esa-cli move --category 開発 --to ドキュメント --user 自分のユーザー名 --message "プロジェクト完了による移動"
+```
+
+## ベストプラクティス
+
+### 1. 安全な更新のベストプラクティス
+
+1. **更新前に最新状態を確認**
+   ```bash
+   esa-cli fetch 123  # 最新状態を取得
+   ```
+
+2. **変更履歴を明確に記録**
+   ```bash
+   esa-cli update 123-article-title.md --message "API仕様を更新"
+   ```
+
+3. **WIP状態の適切な管理**
+   ```bash
+   # 作業中はWIP状態で更新
+   esa-cli update 123-article-title.md
+   
+   # 完了時はWIPを解除
+   esa-cli update 123-article-title.md --no-wip
+   ```
+
+### 2. 一括処理のベストプラクティス
+
+1. **処理前に確認**
+   ```bash
+   # 移動対象を確認
+   esa-cli list --category 開発 --user 自分のユーザー名
+   ```
+
+2. **小規模から開始**
+   ```bash
+   # 最初は少数でテスト
+   esa-cli fetch-all --category 開発 --limit 5
+   ```
+
+3. **バックアップを取る**
+   ```bash
+   # 一括処理前にバックアップ
+   esa-cli fetch-all --category 開発
+   ```
+
+### 3. チーム作業でのベストプラクティス
+
+1. **定期的な同期**
+   ```bash
+   # 週次で最新記事を取得
+   esa-cli fetch-all --limit 50
+   ```
+
+2. **変更履歴の活用**
+   ```bash
+   # 必ずメッセージを付けて更新
+   esa-cli update file.md --message "変更内容の説明"
+   ```
+
+3. **競合の早期発見**
+   ```bash
+   # 更新前に最新状態を確認
+   esa-cli fetch article_number
+   ```
+
+## カスタマイズ・自動化
 
 ### シェルスクリプトでの活用
 
@@ -192,56 +313,50 @@ esa-cli move --category 開発 --to ドキュメント --user 自分のユーザ
 echo "開発完了した記事をドキュメントに移動します..."
 
 # 開発カテゴリで自分が作成した記事をドキュメントに移動
-esa-cli move -c 開発 -o ドキュメント -u 自分のユーザー名 -f -m "開発完了による移動"
+esa-cli move --category 開発 --to ドキュメント --user 自分のユーザー名 --force --message "開発完了による移動"
 
 echo "移動が完了しました！"
 ```
 
-## チーム作業での安全な更新
-
-### リモート変更の検出
-
-チームで記事を編集する際、他の人の変更を誤って上書きすることを防げます。
+### エディタとの連携
 
 ```bash
-# 更新時にリモート変更があれば警告が表示されます
-esa-cli update 123-article-title.md
+# VS Codeで記事を開く
+esa-cli fetch 123 && code 123-*.md
+
+# Cursorで記事を開く
+esa-cli fetch 123 && open -a Cursor 123-*.md
+
+# Typoraで記事を開く
+esa-cli fetch 123 && open -a Typora 123-*.md
 ```
 
-**警告例：**
+## コマンドの効率化
+
+### 短縮オプションの活用
+
+実務では短縮オプションを使うことで、コマンドをより効率的に実行できます：
+
+```bash
+# 短縮形（効率的）
+esa-cli list -c 開発 -t API -u 自分のユーザー名
+
+# 標準形（読みやすい）
+esa-cli list --category 開発 --tag API --user 自分のユーザー名
 ```
-⚠️  警告: リモートの記事はローカルで編集を始めてから更新されています。
-  リモート: 2025-06-22 14:01:45
-  ローカル: 2025-06-21 09:32:41
-このまま上書きしますか？ (y/N):
-```
 
-### 安全な更新のベストプラクティス
-
-1. **更新前に最新状態を確認**
-   ```bash
-   esa-cli fetch 123  # 最新状態を取得
-   ```
-
-2. **変更履歴を明確に記録**
-   ```bash
-   esa-cli update 123-article-title.md -m "API仕様を更新"
-   esa-cli update 123-article-title.md --message "API仕様を更新"
-   ```
-
-3. **WIP状態の適切な管理**
-   ```bash
-   # 作業中はWIP状態で更新
-   esa-cli update 123-article-title.md
-   
-   # 完了時はWIPを解除
-   esa-cli update 123-article-title.md -n
-   esa-cli update 123-article-title.md --no-wip
-   ```
-
-## カスタマイズ・自動化
-
-- **エディタやFinderとの連携、通知機能の活用**
-- **シェルスクリプトでの自動化例**
+**短縮オプション一覧**:
+- `-c` = `--category` (カテゴリ)
+- `-t` = `--tag` (タグ)
+- `-q` = `--query` (検索ワード)
+- `-u` = `--user` (作成者)
+- `-l` = `--latest` (最新記事) / `--limit` (取得件数)
+- `-m` = `--message` (メッセージ)
+- `-n` = `--no-wip` (WIP解除)
+- `-a` = `--add-tags` (タグ追加)
+- `-r` = `--remove-tags` (タグ削除)
+- `-o` = `--to` (移動先)
+- `-f` = `--force` (強制実行)
 
 さらに詳細なコマンド仕様は[コマンドリファレンス](/esa-cli/commands)を参照してください。 
+
