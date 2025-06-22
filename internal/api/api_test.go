@@ -7,6 +7,7 @@ import (
 
 	"github.com/shellme/esa-cli/internal/api/mock"
 	"github.com/shellme/esa-cli/internal/testutil"
+	"github.com/shellme/esa-cli/pkg/types"
 )
 
 func TestClient_ListPosts(t *testing.T) {
@@ -136,7 +137,6 @@ func TestClient_UpdatePost(t *testing.T) {
 		name    string
 		setup   func()
 		file    string
-		options *UpdatePostOptions
 		wantErr bool
 	}{
 		{
@@ -158,7 +158,6 @@ func TestClient_UpdatePost(t *testing.T) {
 				}`), nil)
 			},
 			file:    filename,
-			options: &UpdatePostOptions{},
 			wantErr: false,
 		},
 		{
@@ -167,7 +166,6 @@ func TestClient_UpdatePost(t *testing.T) {
 				mockClient.SetResponse(testutil.CreateMockResponse(t, http.StatusNotFound, `{"error": "Not Found"}`), nil)
 			},
 			file:    "999-存在しない記事.md",
-			options: &UpdatePostOptions{},
 			wantErr: true,
 		},
 	}
@@ -178,7 +176,7 @@ func TestClient_UpdatePost(t *testing.T) {
 				tt.setup()
 			}
 
-			err := client.UpdatePost(tt.file, tt.options)
+			_, err := client.UpdatePost(context.Background(), 1, types.UpdatePostBody{})
 			if (err != nil) != tt.wantErr {
 				t.Errorf("UpdatePost() error = %v, wantErr %v", err, tt.wantErr)
 			}
