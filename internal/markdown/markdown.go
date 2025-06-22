@@ -1,80 +1,50 @@
 package markdown
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 
 	"github.com/shellme/esa-cli/pkg/types"
+	"gopkg.in/yaml.v2"
 )
 
-// MarkdownコンテンツにメタデータのFrontMatterを追加
-func GenerateContent(post types.Post) string {
-	var content strings.Builder
+// GenerateContent generates markdown content with front matter.
+func GenerateContent(fm types.FrontMatter, body string) ([]byte, error) {
+	var buf bytes.Buffer
 
-	content.WriteString("---\n")
-	content.WriteString(fmt.Sprintf("title: %s\n", post.Name))
-	if post.Category != "" {
-		content.WriteString(fmt.Sprintf("category: %s\n", post.Category))
-	}
-	if len(post.Tags) > 0 {
-		content.WriteString(fmt.Sprintf("tags: [%s]\n", strings.Join(post.Tags, ", ")))
-	}
-	content.WriteString(fmt.Sprintf("wip: %t\n", post.Wip))
-	content.WriteString("---\n\n")
-	content.WriteString(post.BodyMD)
+	// ---
+	buf.WriteString("---\n")
 
-	return content.String()
+	// front matter
+	out, err := yaml.Marshal(fm)
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(out)
+
+	// ---
+	buf.WriteString("---\n\n")
+
+	// body
+	buf.WriteString(body)
+
+	return buf.Bytes(), nil
 }
 
-// Markdownファイルからメタデータと本文を分離
-func ParseContent(content string) (types.Post, error) {
-	lines := strings.Split(content, "\n")
-
-	var post types.Post
-	inFrontMatter := false
-	bodyStartIndex := 0
-
-	// Front Matterを解析
-	for i, line := range lines {
-		if line == "---" {
-			if !inFrontMatter {
-				inFrontMatter = true
-				continue
-			} else {
-				bodyStartIndex = i + 1
-				if bodyStartIndex < len(lines) && lines[bodyStartIndex] == "" {
-					bodyStartIndex++
-				}
-				break
-			}
-		}
-
-		if inFrontMatter {
-			if strings.HasPrefix(line, "title: ") {
-				post.Name = strings.TrimPrefix(line, "title: ")
-			} else if strings.HasPrefix(line, "category: ") {
-				post.Category = strings.TrimPrefix(line, "category: ")
-			} else if strings.HasPrefix(line, "tags: ") {
-				tagsStr := strings.TrimPrefix(line, "tags: ")
-				tagsStr = strings.Trim(tagsStr, "[]")
-				if tagsStr != "" {
-					post.Tags = strings.Split(tagsStr, ", ")
-					// タグの前後の空白を除去
-					for i, tag := range post.Tags {
-						post.Tags[i] = strings.TrimSpace(tag)
-					}
-				}
-			} else if strings.HasPrefix(line, "wip: ") {
-				wipStr := strings.TrimPrefix(line, "wip: ")
-				post.Wip = wipStr == "true"
-			}
-		}
+// ParseContent parses markdown content and separates front matter and body.
+func ParseContent(content []byte) (types.FrontMatter, string, error) {
+	parts := bytes.SplitN(content, []byte("---\n"), 3)
+	if len(parts) < 3 {
+		return types.FrontMatter{}, "", fmt.Errorf("failed to parse front matter")
 	}
 
-	// 本文を結合
-	if bodyStartIndex < len(lines) {
-		post.BodyMD = strings.Join(lines[bodyStartIndex:], "\n")
+	var fm types.FrontMatter
+	if err := yaml.Unmarshal(parts[1], &fm); err != nil {
+		return types.FrontMatter{}, "", err
 	}
 
-	return post, nil
+	body := strings.TrimSpace(string(parts[2]))
+
+	return fm, body, nil
 }

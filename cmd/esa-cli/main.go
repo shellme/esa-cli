@@ -8,9 +8,12 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/shellme/esa-cli/internal/api"
 	"github.com/shellme/esa-cli/internal/config"
+	"github.com/shellme/esa-cli/internal/markdown"
+	"github.com/shellme/esa-cli/pkg/types"
 )
 
 var (
@@ -78,13 +81,13 @@ func main() {
 		runSetup()
 	case "list":
 		listCmd.Parse(os.Args[2:])
-		runList(category, tag, query)
+		runList(listCmd, category, tag, query)
 	case "fetch":
 		fetchCmd.Parse(os.Args[2:])
-		runFetch(fetchCategory, fetchTag, fetchQuery, fetchLatest)
+		runFetch(fetchCmd, fetchCategory, fetchTag, fetchQuery, fetchLatest)
 	case "update":
 		updateCmd.Parse(os.Args[2:])
-		runUpdate(noWip, updateCategory, addTags, removeTags, message)
+		runUpdate(updateCmd, noWip, updateCategory, addTags, removeTags, message)
 	case "help":
 		showHelp()
 	default:
@@ -147,14 +150,14 @@ func runSetup() {
 	}
 }
 
-func runList(category, tag, query string) {
+func runList(cmd *flag.FlagSet, category, tag, query string) {
 	options := &api.ListPostsOptions{
 		Category: category,
 		Tag:      tag,
 		Query:    query,
 	}
-	if len(os.Args) > 2 {
-		if l, err := strconv.Atoi(os.Args[2]); err == nil && l > 0 {
+	if len(cmd.Args()) > 0 {
+		if l, err := strconv.Atoi(cmd.Args()[0]); err == nil && l > 0 {
 			options.Limit = l
 		}
 	}
@@ -187,7 +190,7 @@ func runList(category, tag, query string) {
 	}
 }
 
-func runFetch(category, tag, query string, latest bool) {
+func runFetch(cmd *flag.FlagSet, category, tag, query string, latest bool) {
 	cfg, err := config.Load()
 	if err != nil {
 		fmt.Printf("❌ 設定の読み込みに失敗しました: %v\n", err)
@@ -221,24 +224,29 @@ func runFetch(category, tag, query string, latest bool) {
 			os.Exit(1)
 		}
 		post := posts[0]
-		fmt.Printf("タイトル: %s\n", post.FullName)
-		fmt.Printf("本文:\n%s\n", post.BodyMD)
+		// 最新記事の番号で後続の処理を行う
+		fetchArticle(client, post.Number)
 		return
 	}
 
 	// 記事番号が指定されていない場合
-	if len(os.Args) < 3 {
+	if len(cmd.Args()) < 1 {
 		fmt.Println("❌ 記事番号を指定してください")
 		fmt.Println("💡 使用例: esa-cli fetch 123")
 		os.Exit(1)
 	}
 
-	postNumber, err := strconv.Atoi(os.Args[2])
+	postNumber, err := strconv.Atoi(cmd.Args()[0])
 	if err != nil {
-		fmt.Printf("❌ 無効な記事番号です: %s\n", os.Args[2])
+		fmt.Printf("❌ 無効な記事番号です: %s\n", cmd.Args()[0])
 		os.Exit(1)
 	}
 
+	fetchArticle(client, postNumber)
+}
+
+// 記事を取得してファイルに書き込む共通関数
+func fetchArticle(client *api.Client, postNumber int) {
 	// 記事を取得
 	post, err := client.FetchPost(context.Background(), postNumber)
 	if err != nil {
@@ -246,47 +254,133 @@ func runFetch(category, tag, query string, latest bool) {
 		os.Exit(1)
 	}
 
-	// 記事の内容を表示
-	fmt.Printf("タイトル: %s\n", post.FullName)
-	fmt.Printf("本文:\n%s\n", post.BodyMD)
-}
+	fm := types.FrontMatter{
+		Title:           post.Name,
+		Category:        post.Category,
+		Tags:            post.Tags,
+		Wip:             post.Wip,
+		RemoteUpdatedAt: post.UpdatedAt.Format(time.RFC3339),
+	}
 
-func runUpdate(noWip bool, category, addTags, removeTags, message string) {
-	if len(os.Args) < 3 {
-		fmt.Println("❌ ファイル名を指定してください")
-		fmt.Println("💡 使用例: esa-cli update 123-article-title.md")
+	content, err := markdown.GenerateContent(fm, post.BodyMd)
+	if err != nil {
+		fmt.Printf("❌ ファイル内容の生成に失敗しました: %v\n", err)
 		os.Exit(1)
 	}
 
-	filename := os.Args[2]
+	fileName := fmt.Sprintf("%d-%s.md", post.Number, post.Name)
+	if err := os.WriteFile(fileName, content, 0644); err != nil {
+		fmt.Printf("❌ ファイルの書き込みに失敗しました: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("✅ 記事をダウンロードしました: %s\n", fileName)
+}
+
+func runUpdate(cmd *flag.FlagSet, noWip bool, category, addTags, removeTags, message string) {
+	if len(cmd.Args()) < 1 {
+		fmt.Println("❌ ファイル名を指定してください")
+		fmt.Println("💡 使用例: esa-cli update 123-title.md")
+		os.Exit(1)
+	}
+	fileName := cmd.Args()[0]
+
+	// ファイル名から記事番号を取得
+	postNumberStr := strings.Split(fileName, "-")[0]
+	postNumber, err := strconv.Atoi(postNumberStr)
+	if err != nil {
+		fmt.Printf("❌ 無効なファイル名です。'記事番号-タイトル.md'の形式である必要があります: %s\n", fileName)
+		os.Exit(1)
+	}
+
+	// ファイルを読み込む
+	content, err := os.ReadFile(fileName)
+	if err != nil {
+		fmt.Printf("❌ ファイルの読み込みに失敗しました: %v\n", err)
+		os.Exit(1)
+	}
+
+	fm, body, err := markdown.ParseContent(content)
+	if err != nil {
+		fmt.Printf("❌ ファイルの解析に失敗しました: %v\n", err)
+		os.Exit(1)
+	}
+
 	cfg, err := config.Load()
 	if err != nil {
 		fmt.Printf("❌ 設定の読み込みに失敗しました: %v\n", err)
-		fmt.Println("💡 'esa-cli setup' で初期設定を行ってください")
 		os.Exit(1)
 	}
-
-	if cfg.AccessToken == "" || cfg.TeamName == "" {
-		fmt.Println("❌ 設定が完了していません")
-		fmt.Println("💡 'esa-cli setup' で初期設定を行ってください")
-		os.Exit(1)
-	}
-
 	client := newAPIClient(cfg.TeamName, cfg.AccessToken)
 
-	// 更新オプションを設定
-	options := &api.UpdatePostOptions{
-		NoWip:      noWip,
-		Category:   category,
-		AddTags:    strings.Split(addTags, ","),
-		RemoveTags: strings.Split(removeTags, ","),
-		Message:    message,
+	// リモートの更新日時をチェック
+	if fm.RemoteUpdatedAt != "" {
+		remotePost, err := client.FetchPost(context.Background(), postNumber)
+		if err != nil {
+			// 記事が存在しない場合はチェックをスキップ
+			if !strings.Contains(err.Error(), "404") {
+				fmt.Printf("⚠️  リモート記事の取得に失敗しました: %v\n", err)
+			}
+		} else {
+			localUpdatedAt, _ := time.Parse(time.RFC3339, fm.RemoteUpdatedAt)
+			if remotePost.UpdatedAt.After(localUpdatedAt) {
+				fmt.Println("⚠️  警告: リモートの記事はローカルで編集を始めてから更新されています。")
+				fmt.Printf("  リモート: %s\n", remotePost.UpdatedAt.Local().Format("2006-01-02 15:04:05"))
+				fmt.Printf("  ローカル: %s\n", localUpdatedAt.Local().Format("2006-01-02 15:04:05"))
+				fmt.Print("このまま上書きしますか？ (y/N): ")
+
+				var confirm string
+				fmt.Scanln(&confirm)
+				if strings.ToLower(confirm) != "y" {
+					fmt.Println("🚫 更新を中止しました。")
+					os.Exit(0)
+				}
+			}
+		}
 	}
 
-	if err := client.UpdatePost(filename, options); err != nil {
-		fmt.Printf("❌ エラー: %v\n", err)
+	updateReq := types.UpdatePostBody{
+		Name:    fm.Title,
+		BodyMd:  body,
+		Message: message,
+		Wip:     fm.Wip,
+	}
+	if category != "" {
+		updateReq.Category = category
+	} else {
+		updateReq.Category = fm.Category
+	}
+	if addTags != "" {
+		updateReq.Tags = append(fm.Tags, strings.Split(addTags, ",")...)
+	} else {
+		updateReq.Tags = fm.Tags
+	}
+	// TODO: removeTagsの処理を追加する
+
+	updatedPost, err := client.UpdatePost(context.Background(), postNumber, updateReq)
+	if err != nil {
+		fmt.Printf("❌ 記事の更新に失敗しました: %v\n", err)
 		os.Exit(1)
 	}
 
-	fmt.Println("✅ 記事を更新しました")
+	// ローカルファイルを更新後の内容で書き換える
+	newFm := types.FrontMatter{
+		Title:           updatedPost.Name,
+		Category:        updatedPost.Category,
+		Tags:            updatedPost.Tags,
+		Wip:             updatedPost.Wip,
+		RemoteUpdatedAt: updatedPost.UpdatedAt.Format(time.RFC3339),
+	}
+	newContent, err := markdown.GenerateContent(newFm, updatedPost.BodyMd)
+	if err != nil {
+		fmt.Printf("❌ ローカルファイルの更新に失敗しました: %v\n", err)
+		os.Exit(1)
+	}
+
+	if err := os.WriteFile(fileName, newContent, 0644); err != nil {
+		fmt.Printf("❌ ローカルファイルの書き込みに失敗しました: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("✅ 記事を更新しました: %s\n", fileName)
 }
