@@ -16,6 +16,11 @@ archives:
     files:
       - LICENSE
 
+hooks:
+  post:
+    - sh -c "lipo -create -output ./dist/esa-cli-darwin-universal ./dist/esa-cli_darwin_amd64_v1/esa-cli ./dist/esa-cli_darwin_arm64/esa-cli"
+    - sh -c "tar -czf ./dist/esa-cli-darwin-universal.tar.gz -C ./dist esa-cli-darwin-universal"
+
 checksum:
   name_template: "checksums.txt"
 
@@ -40,6 +45,8 @@ release:
   github:
     owner: shellme
     name: esa-cli
+  extra_files:
+    - glob: ./dist/esa-cli-darwin-universal.tar.gz
 
 changelog:
   sort: desc
