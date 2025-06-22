@@ -35,6 +35,21 @@ type PostRequest struct {
 	Post UpdatePostBody `json:"post"`
 }
 
+// CreatePostBody is a struct for the body of a post to be created
+type CreatePostBody struct {
+	Name     string   `json:"name,omitempty"`
+	Category string   `json:"category,omitempty"`
+	Tags     []string `json:"tags,omitempty"`
+	BodyMd   string   `json:"body_md,omitempty"`
+	Wip      bool     `json:"wip"`
+	Message  string   `json:"message,omitempty"`
+}
+
+// CreatePostRequest is a struct for API request for creating a post
+type CreatePostRequest struct {
+	Post CreatePostBody `json:"post"`
+}
+
 // FrontMatter a struct for a post's front matter
 type FrontMatter struct {
 	Title           string   `yaml:"title"`

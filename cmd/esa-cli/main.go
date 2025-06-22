@@ -121,6 +121,21 @@ func main() {
 	updateAllCmd.StringVarP(&updateAllRemoveTags, "remove-tags", "r", "", "タグを削除（カンマ区切り）")
 	updateAllCmd.BoolVarP(&updateAllForce, "force", "f", false, "確認なしで実行")
 
+	// createコマンドのオプション
+	createCmd := pflag.NewFlagSet("create", pflag.ExitOnError)
+	var createTitle string
+	var createCategory string
+	var createTags string
+	var createMessage string
+	var createWip bool
+	var createFile string
+	createCmd.StringVarP(&createTitle, "title", "t", "", "記事のタイトル")
+	createCmd.StringVarP(&createCategory, "category", "c", "", "カテゴリ")
+	createCmd.StringVarP(&createTags, "tags", "g", "", "タグ（カンマ区切り）")
+	createCmd.StringVarP(&createMessage, "message", "m", "", "作成メッセージ")
+	createCmd.BoolVarP(&createWip, "wip", "w", false, "WIP状態で作成")
+	createCmd.StringVarP(&createFile, "file", "f", "", "既存のMarkdownファイルから作成")
+
 	// 引数が指定されていない場合はヘルプを表示
 	if len(os.Args) < 2 {
 		showHelp()
@@ -150,6 +165,9 @@ func main() {
 	case "update-all":
 		updateAllCmd.Parse(os.Args[2:])
 		runUpdateAll(updateAllCmd, updateAllPattern, updateAllMessage, updateAllCategory, updateAllAddTags, updateAllRemoveTags, updateAllNoWip, updateAllForce)
+	case "create":
+		createCmd.Parse(os.Args[2:])
+		runCreate(createCmd, createTitle, createCategory, createTags, createMessage, createWip, createFile)
 	case "help":
 		showHelp()
 	default:
@@ -208,6 +226,14 @@ func showHelp() {
 	fmt.Println("      -a, --add-tags <タグ>     タグを追加（カンマ区切り）")
 	fmt.Println("      -r, --remove-tags <タグ>  タグを削除（カンマ区切り）")
 	fmt.Println("      -f, --force               確認なしで実行")
+	fmt.Println("  esa-cli create                 新しい記事を作成")
+	fmt.Println("    オプション:")
+	fmt.Println("      -t, --title <記事のタイトル>  記事のタイトル")
+	fmt.Println("      -c, --category <カテゴリ>  カテゴリ")
+	fmt.Println("      -g, --tags <タグ>          タグ（カンマ区切り）")
+	fmt.Println("      -m, --message <作成メッセージ> 作成メッセージ")
+	fmt.Println("      -w, --wip                 WIP状態で作成")
+	fmt.Println("      -f, --file <既存のMarkdownファイル> 既存のMarkdownファイルから作成")
 	fmt.Println("  esa-cli version                バージョン表示")
 	fmt.Println("  esa-cli help                   このヘルプを表示")
 	fmt.Println("")
@@ -233,6 +259,9 @@ func showHelp() {
 	fmt.Println("  esa-cli fetch-all -t API -l 5  # APIタグの最新5件を一括ダウンロード")
 	fmt.Println("  esa-cli update-all  # 現在のディレクトリの全記事を一括更新")
 	fmt.Println("  esa-cli update-all \"123-*.md\" -m 一括更新  # 特定パターンの記事を一括更新")
+	fmt.Println("  esa-cli create \"新機能の説明\" -c 開発 -g API,新機能  # 新しい記事を作成")
+	fmt.Println("  esa-cli create \"API仕様書\" -c 開発/API -g API,ドキュメント -w  # WIP状態で記事を作成")
+	fmt.Println("  esa-cli create -f draft.md -c 開発/ドキュメント  # 既存ファイルから記事を作成")
 	fmt.Println("")
 	fmt.Println("💡 初回利用時は 'esa-cli setup' で設定を行ってください")
 }
@@ -874,4 +903,117 @@ func updateArticle(client *api.Client, filename, message string, noWip bool, cat
 	}
 
 	return nil
+}
+
+func runCreate(cmd *pflag.FlagSet, title, category, tags, message string, wip bool, file string) {
+	// 設定の読み込み
+	cfg, err := config.Load()
+	if err != nil {
+		fmt.Printf("❌ 設定の読み込みに失敗しました: %v\n", err)
+		fmt.Println("💡 'esa-cli setup' で初期設定を行ってください")
+		os.Exit(1)
+	}
+
+	if cfg.AccessToken == "" || cfg.TeamName == "" {
+		fmt.Println("❌ 設定が完了していません")
+		fmt.Println("💡 'esa-cli setup' で初期設定を行ってください")
+		os.Exit(1)
+	}
+
+	// 位置引数からタイトルを取得
+	if len(cmd.Args()) > 0 && title == "" {
+		title = cmd.Args()[0]
+	}
+
+	// 対話形式での入力（タイトルが指定されていない場合）
+	if title == "" && file == "" {
+		fmt.Println("📝 新しい記事を作成します")
+		fmt.Print("記事のタイトル: ")
+		fmt.Scanln(&title)
+		if title == "" {
+			fmt.Println("❌ タイトルが指定されていません")
+			os.Exit(1)
+		}
+	}
+
+	client := newAPIClient(cfg.TeamName, cfg.AccessToken)
+
+	// タグの処理
+	var tagList []string
+	if tags != "" {
+		tagList = strings.Split(tags, ",")
+		for i, tag := range tagList {
+			tagList[i] = strings.TrimSpace(tag)
+		}
+	}
+
+	// 記事作成リクエストの作成
+	createBody := types.CreatePostBody{
+		Name:     title,
+		Category: category,
+		Tags:     tagList,
+		BodyMd:   "",
+		Wip:      wip,
+		Message:  message,
+	}
+
+	// ファイルから作成する場合
+	if file != "" {
+		content, err := os.ReadFile(file)
+		if err != nil {
+			fmt.Printf("❌ ファイルの読み込みに失敗しました: %v\n", err)
+			os.Exit(1)
+		}
+
+		// Markdownコンテンツを解析
+		fm, body, err := markdown.ParseContent(content)
+		if err != nil {
+			fmt.Printf("❌ ファイルの解析に失敗しました: %v\n", err)
+			os.Exit(1)
+		}
+
+		// ファイルの内容で上書き
+		if fm.Title != "" {
+			createBody.Name = fm.Title
+		}
+		if fm.Category != "" {
+			createBody.Category = fm.Category
+		}
+		if len(fm.Tags) > 0 {
+			createBody.Tags = fm.Tags
+		}
+		createBody.Wip = fm.Wip
+		createBody.BodyMd = body
+	}
+
+	// 新しい記事の作成
+	post, err := client.CreatePost(context.Background(), createBody)
+	if err != nil {
+		fmt.Printf("❌ 記事の作成に失敗しました: %v\n", err)
+		os.Exit(1)
+	}
+
+	// 作成された記事をローカルファイルとして保存
+	fm := types.FrontMatter{
+		Title:           post.Name,
+		Category:        post.Category,
+		Tags:            post.Tags,
+		Wip:             post.Wip,
+		RemoteUpdatedAt: post.UpdatedAt.Format(time.RFC3339),
+	}
+
+	content, err := markdown.GenerateContent(fm, post.BodyMd)
+	if err != nil {
+		fmt.Printf("❌ ファイル内容の生成に失敗しました: %v\n", err)
+		os.Exit(1)
+	}
+
+	fileName := fmt.Sprintf("%d-%s.md", post.Number, post.Name)
+	if err := os.WriteFile(fileName, content, 0644); err != nil {
+		fmt.Printf("❌ ファイルの書き込みに失敗しました: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("✅ 新しい記事が作成されました: %s\n", post.FullName)
+	fmt.Printf("📄 ローカルファイル: %s\n", fileName)
 }

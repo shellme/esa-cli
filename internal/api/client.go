@@ -212,6 +212,34 @@ func (c *Client) UpdatePost(ctx context.Context, postNumber int, post types.Upda
 	return &updatedPost, nil
 }
 
+// CreatePost creates a new post on esa.io.
+func (c *Client) CreatePost(ctx context.Context, post types.CreatePostBody) (*types.Post, error) {
+	path := fmt.Sprintf("/teams/%s/posts", c.teamName)
+
+	reqBody := types.CreatePostRequest{Post: post}
+	jsonBody, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request body: %w", err)
+	}
+
+	resp, err := c.makeRequest(http.MethodPost, path, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return nil, fmt.Errorf("API request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		return nil, fmt.Errorf("API returned status: %s", resp.Status)
+	}
+
+	var createdPost types.Post
+	if err := json.NewDecoder(resp.Body).Decode(&createdPost); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	return &createdPost, nil
+}
+
 // BulkUpdateCategory 複数の記事のカテゴリを一括更新
 func (c *Client) BulkUpdateCategory(ctx context.Context, postNumbers []int, newCategory string, message string) ([]*types.Post, error) {
 	var updatedPosts []*types.Post
