@@ -7,7 +7,7 @@ class EsaCli < Formula
   sha256 "f65f01d5c862bcf720f498a0a05fa470df0c4f3210c0007aa955c080d4c27c99"
 
   def install
-    bin.install "esa-cli"
+    bin.install "esa-cli-darwin-universal" => "esa-cli"
     
     # 設定ファイルのテンプレートを作成
     (etc/"esa-cli").mkpath
