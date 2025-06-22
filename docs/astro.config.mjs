@@ -40,6 +40,7 @@ export default defineConfig({
 						{ label: 'コマンド一覧', link: '/commands/' },
 						{ label: '初期設定', link: '/commands/setup' },
 						{ label: '記事一覧', link: '/commands/list' },
+						{ label: '記事作成', link: '/commands/create' },
 						{ label: '記事取得', link: '/commands/fetch' },
 						{ label: '記事更新', link: '/commands/update' },
 						{ label: '記事一括移動', link: '/commands/move' },
