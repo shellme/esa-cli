@@ -2,9 +2,9 @@ class EsaCli < Formula
   desc "CLI tool for managing esa.io articles"
   homepage "https://github.com/shellme/esa-cli"
   license "MIT"
-  version "0.1.3"
+  version "0.1.4"
   url "https://github.com/shellme/esa-cli/releases/download/v#{version}/esa-cli-darwin-universal.tar.gz"
-  sha256 "f65f01d5c862bcf720f498a0a05fa470df0c4f3210c0007aa955c080d4c27c99"
+  sha256 "0bc3d2070f320fee1fab38dade4663ff93ea875cfb3c12298af0ecdb504e1616"
 
   def install
     bin.install "esa-cli-darwin-universal" => "esa-cli"
