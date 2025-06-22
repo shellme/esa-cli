@@ -71,7 +71,7 @@ export default defineConfig({
 					tag: 'link',
 					attrs: {
 						rel: 'icon',
-						href: '/esa-cli/favicon.ico'
+						href: isProd ? '/esa-cli/favicon.ico' : '/favicon.ico'
 					}
 				}
 			]
