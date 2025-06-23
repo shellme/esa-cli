@@ -6,9 +6,11 @@ class EsaCli < Formula
   url "https://github.com/shellme/esa-cli/releases/download/v#{version}/esa-cli-darwin-universal.tar.gz"
   sha256 "595585a7a1d4ca50979d5ce88eefdbfff7f478e751f3c18a4304982bff922040"
 
+  depends_on "go" => [">=1.16", :build]
+
   def install
     bin.install "esa-cli-darwin-universal" => "esa-cli"
-    
+
     # 設定ファイルのテンプレートを作成
     (etc/"esa-cli").mkpath
     (etc/"esa-cli/config.template").write <<~EOS
@@ -36,4 +38,4 @@ class EsaCli < Formula
   test do
     system "#{bin}/esa-cli", "version"
   end
-end 
+end
