@@ -22,6 +22,31 @@ brew uninstall esa-cli
 brew install shellme/esa-cli
 ```
 
+### Q: バージョンアップはどうすればいいですか？
+A: Homebrewを使用している場合は、以下のコマンドで簡単にアップグレードできます：
+
+**通常のアップグレード:**
+```bash
+brew upgrade esa-cli
+```
+
+**アップグレード後の確認:**
+```bash
+esa-cli version
+```
+
+**特定のバージョンに固定したい場合:**
+```bash
+# 例：v0.2.8に固定
+brew pin esa-cli
+# 固定解除
+brew unpin esa-cli
+```
+
+:::tip[ヒント]
+`brew upgrade` を実行すると、利用可能な最新バージョンが自動的にインストールされます。定期的に実行することで、常に最新の機能とバグ修正を利用できます。
+:::
+
 ### Q: `brew upgrade esa-cli` で「Will not overwrite config.template」エラーが出ます
 A: これは既存の設定ファイルが原因でHomebrewが上書きを拒否しているエラーです。以下の手順で解決できます：
 
@@ -37,6 +62,34 @@ brew upgrade esa-cli
 
 :::tip[ヒント]
 このエラーは初回インストール後のアップグレード時や、手動で設定ファイルを編集した場合に発生する可能性があります。一度解決すれば今後のアップグレードでは通常発生しません。
+:::
+
+### Q: アップグレード後に古いバージョンが表示される場合
+A: 以下の手順で確認してください：
+
+1. 現在インストールされているバージョンを確認
+```bash
+brew list --versions esa-cli
+```
+
+2. 最新のリリース情報を確認
+```bash
+brew info esa-cli
+```
+
+3. 必要に応じて強制アップデート
+```bash
+brew update
+brew upgrade esa-cli
+```
+
+4. キャッシュをクリア
+```bash
+brew cleanup
+```
+
+:::note[重要]
+HomebrewのFormulaが最新のリリース情報を反映していない場合があります。その場合は、リポジトリの管理者が手動で更新する必要があります。
 :::
 
 ### Q: `esa-cli` コマンドが見つかりません
