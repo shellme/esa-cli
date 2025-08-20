@@ -1,54 +1,45 @@
-# Starlight Starter Kit: Basics
+# esa-cli Documentation
 
-[![Built with Starlight](https://astro.badg.es/v2/built-with-starlight/tiny.svg)](https://starlight.astro.build)
+esa-cliの公式ドキュメントサイトです。
 
-```
-npm create astro@latest -- --template starlight
-```
+## 🚀 プロジェクト構造
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/withastro/starlight/tree/main/examples/basics)
-[![Open with CodeSandbox](https://assets.codesandbox.io/github/button-edit-lime.svg)](https://codesandbox.io/p/sandbox/github/withastro/starlight/tree/main/examples/basics)
-[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/withastro/starlight&create_from_path=examples/basics)
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fwithastro%2Fstarlight%2Ftree%2Fmain%2Fexamples%2Fbasics&project-name=my-starlight-docs&repository-name=my-starlight-docs)
-
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
-
-## 🚀 Project Structure
-
-Inside of your Astro + Starlight project, you'll see the following folders and files:
+このAstro + Starlightプロジェクトでは、以下のフォルダとファイルが使用されています：
 
 ```
 .
-├── public/
+├── public/          # 静的アセット（favicon等）
 ├── src/
-│   ├── assets/
-│   ├── content/
-│   │   ├── docs/
+│   ├── assets/      # 画像やスタイルシート
+│   ├── content/     # ドキュメントコンテンツ
+│   │   ├── docs/    # メインドキュメント
 │   └── content.config.ts
 ├── astro.config.mjs
 ├── package.json
 └── tsconfig.json
 ```
 
-Starlight looks for `.md` or `.mdx` files in the `src/content/docs/` directory. Each file is exposed as a route based on its file name.
+## 📚 ドキュメントの構成
 
-Images can be added to `src/assets/` and embedded in Markdown with a relative link.
+Starlightは`src/content/docs/`ディレクトリ内の`.md`または`.mdx`ファイルを探します。各ファイルはファイル名に基づいてルートとして公開されます。
 
-Static assets, like favicons, can be placed in the `public/` directory.
+画像は`src/assets/`に追加でき、Markdown内で相対リンクで埋め込むことができます。
 
-## 🧞 Commands
+## 🧞 コマンド
 
-All commands are run from the root of the project, from a terminal:
+すべてのコマンドは、プロジェクトのルートからターミナルで実行します：
 
-| Command                   | Action                                           |
+| コマンド                   | アクション                                           |
 | :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+| `npm install`             | 依存関係をインストール                            |
+| `npm run dev`             | ローカル開発サーバーを`localhost:4321`で開始      |
+| `npm run build`           | 本番サイトを`./dist/`にビルド                      |
+| `npm run preview`         | デプロイ前にローカルでビルドをプレビュー           |
+| `npm run astro ...`       | `astro add`、`astro check`などのCLIコマンドを実行 |
+| `npm run astro -- --help` | Astro CLIのヘルプを表示                           |
 
-## 👀 Want to learn more?
+## 🔗 関連リンク
 
-Check out [Starlight’s docs](https://starlight.astro.build/), read [the Astro documentation](https://docs.astro.build), or jump into the [Astro Discord server](https://astro.build/chat).
+- [esa-cli GitHub リポジトリ](https://github.com/shellme/esa-cli)
+- [Starlight ドキュメント](https://starlight.astro.build/)
+- [Astro ドキュメント](https://docs.astro.build)

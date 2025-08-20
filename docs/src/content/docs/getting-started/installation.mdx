@@ -5,7 +5,7 @@ description: "esa-cliのインストール方法"
 
 import { Steps } from '@astrojs/starlight/components';
 
-esa-cliは以下の3つの方法でインストールできます。最も簡単な方法はHomebrewを使用する方法です。
+esa-cliは以下の2つの方法でインストールできます。最も簡単な方法はHomebrewを使用する方法です。
 
 ## 方法1: Homebrewを使用（推奨）
 
@@ -28,38 +28,7 @@ brew install esa-cli
 esa-cli --version
 ```
 
-## 方法2: 直接バイナリをダウンロード
-
-### 前提条件
-- macOS または Linux
-- インターネット接続
-
-### インストール手順
-
-<Steps>
-
-1. [GitHubのリリースページ](https://github.com/shellme/esa-cli/releases)から最新のリリースをダウンロード
-
-2. お使いのOSに合わせて適切なバイナリを選択：
-
-   - macOS (Intel): `esa-cli-darwin-amd64`
-   - macOS (Apple Silicon): `esa-cli-darwin-arm64`
-   - Linux (Intel): `esa-cli-linux-amd64`
-   - Linux (ARM): `esa-cli-linux-arm64`
-
-3. ダウンロードしたバイナリを実行可能にして、パスの通ったディレクトリに移動
-
-   ```bash
-   # macOS (Apple Silicon) の場合
-   curl -L -o esa-cli https://github.com/shellme/esa-cli/releases/latest/download/esa-cli-darwin-arm64
-   chmod +x esa-cli
-   sudo mv esa-cli /usr/local/bin/
-   ```
-
-</Steps>
-
-
-## 方法3: ソースコードからビルド
+## 方法2: ソースコードからビルド
 
 ### 前提条件
 - Go 1.16以上
@@ -93,7 +62,6 @@ esa-cli --version
    ```
 
 </Steps>
-
 
 ## トラブルシューティング
 
@@ -154,7 +122,6 @@ esa-cli --version
    set -gx PATH /usr/local/bin $PATH
    ```
 </Steps>
-
 
 ## 次のステップ
 

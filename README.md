@@ -25,72 +25,7 @@ brew tap shellme/esa-cli
 brew install esa-cli
 ```
 
-### 方法2: 直接バイナリをダウンロード
-
-1. [GitHubのリリースページ](https://github.com/shellme/esa-cli/releases)から最新のリリースをダウンロード
-2. お使いのOSに合わせて適切なバイナリを選択
-   - macOS (Intel): `esa-cli-darwin-amd64`
-   - macOS (Apple Silicon): `esa-cli-darwin-arm64`
-   - Linux (Intel): `esa-cli-linux-amd64`
-   - Linux (ARM): `esa-cli-linux-arm64`
-3. ダウンロードしたバイナリを実行可能にして、パスの通ったディレクトリに移動
-
-```bash
-# macOS (Apple Silicon) の場合
-curl -L -o esa-cli https://github.com/shellme/esa-cli/releases/latest/download/esa-cli-darwin-arm64
-chmod +x esa-cli
-sudo mv esa-cli /usr/local/bin/
-```
-
-#### macOSでの追加設定
-
-macOSでは、デフォルトのシェルがzshであるため、以下の設定が必要な場合があります：
-
-1. パスの確認
-```bash
-echo $PATH
-```
-
-2. 必要に応じて、`~/.zshrc` または `~/.zprofile` に以下を追加
-```bash
-export PATH="/usr/local/bin:$PATH"
-```
-
-3. 設定の反映
-```bash
-source ~/.zshrc  # または source ~/.zprofile
-```
-
-4. インストールの確認
-```bash
-which esa-cli
-```
-
-#### fishシェルを使用している場合
-
-fishシェルを使用している場合は、以下の手順で設定を行ってください：
-
-1. パスの確認
-```fish
-echo $PATH
-```
-
-2. 必要に応じて、`~/.config/fish/config.fish` に以下を追加
-```fish
-set -gx PATH /usr/local/bin $PATH
-```
-
-3. 設定の反映
-```fish
-source ~/.config/fish/config.fish
-```
-
-4. インストールの確認
-```fish
-which esa-cli
-```
-
-### 方法3: ソースコードからビルド
+### 方法2: ソースコードからビルド
 
 1. Go 1.16以上をインストール
 2. リポジトリをクローン
