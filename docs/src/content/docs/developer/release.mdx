@@ -49,11 +49,14 @@ esa-cliのリリースは、GitHub Actionsによって大部分が自動化さ�
 
 タグをプッシュすると、GitHub Actionsは以下の作業を自動的に行います。
 
--   LinuxとmacOS用のバイナリをビルド
--   macOS用のユニバーサルバイナリを作成 (`lipo`コマンドを使用)
+-   LinuxとmacOS用のバイナリをビルド（AMD64/ARM64アーキテクチャ）
 -   GitHub Releaseを新規作成
--   すべてのバイナリ（ユニバーサルバイナリを含む）とチェックサムをAssetsにアップロード
+-   すべてのバイナリとチェックサムをAssetsにアップロード
 -   `homebrew-esa-cli`リポジトリのHomebrew Formula (`esa-cli.rb`) を自動で更新
+
+<Aside type="note">
+  現在の設定では、macOS用のユニバーサルバイナリは作成されません。個別のアーキテクチャ用バイナリ（AMD64/ARM64）が提供されます。
+</Aside>
 
 ## リリース後の確認作業
 
@@ -66,13 +69,18 @@ esa-cliのリリースは、GitHub Actionsによって大部分が自動化さ�
 
     [リリースページ](https://github.com/shellme/esa-cli/releases)に移動し、以下を確認します。
     -   新しいバージョンのリリースが作成されていること。
-    -   `esa-cli-darwin-universal.tar.gz`を含む、必要なすべてのアセットがアップロードされていること。
+    -   必要なすべてのバイナリファイル（`esa-cli_x.y.z_darwin_amd64.tar.gz`、`esa-cli_x.y.z_darwin_arm64.tar.gz`など）がアップロードされていること。
 
-3. **リリースノートの編集 (任意)**
+3. **Homebrew Formulaの自動更新確認**
+
+    `homebrew-esa-cli`リポジトリで、新しいバージョン用のFormulaが自動更新されているか確認します。
+    自動更新が不完全な場合は、手動での更新が必要になる場合があります。
+
+4. **リリースノートの編集 (任意)**
 
     自動生成されたChangelogだけでは不十分な場合、リリースノートを編集して、変更点の概要やユーザーへのメッセージを追加します。
 
-4. **Homebrewでのインストール確認**
+5. **Homebrewでのインストール確認**
 
     リリースが反映されたことを確認するため、ローカル環境でHomebrewを使ってインストールまたはアップグレードを試します。
 
@@ -91,3 +99,10 @@ esa-cliのリリースは、GitHub Actionsによって大部分が自動化さ�
 -   **解決策**:
     1.  [PATの設定ページ](https://github.com/settings/tokens?type=beta)で、`repo`スコープを持つ有効なトークンが存在することを確認します。
     2.  `esa-cli`リポジトリの[Secretsページ](https://github.com/shellme/esa-cli/settings/secrets/actions)で、`HOMEBREW_TAP_GITHUB_TOKEN`という名前のSecretにそのトークンが正しく設定されていることを確認します。
+
+**Homebrew Formulaの自動更新が不完全**
+-   **原因**: GoReleaserの設定で、Homebrew Formulaの更新処理に問題がある場合があります。
+-   **解決策**:
+    1.  `homebrew-esa-cli`リポジトリで、自動更新されたFormulaの内容を確認します。
+    2.  必要に応じて、手動でバージョン番号とSHA256を更新します。
+    3.  設定ファイルの競合が発生した場合は、既存の設定ファイルを削除してから再インストールします。
