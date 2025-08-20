@@ -31,6 +31,8 @@ brews:
     homepage: "https://github.com/shellme/esa-cli"
     description: "CLI tool for managing esa.io articles"
     license: "MIT"
+    folder: "Formula"
+    url_template: "https://github.com/shellme/esa-cli/releases/download/v{{ .Version }}/esa-cli_{{ .Version }}_darwin_arm64.tar.gz"
     test: |
       system "#{bin}/esa-cli", "version"
     install: |
