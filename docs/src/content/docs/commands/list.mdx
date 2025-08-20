@@ -33,10 +33,14 @@ esa-cli list [count]
 記事は以下の形式で表示されます：
 
 ```
-[記事番号] タイトル
-カテゴリ: カテゴリ名
-タグ: タグ1, タグ2
-更新日時: YYYY-MM-DD HH:MM:SS
+🔍 記事を検索中...
+   カテゴリ: 開発
+   取得件数: 5件
+
+📋 記事一覧 (5件):
+  [記事番号] 記事のフルタイトル
+  [記事番号] 記事のフルタイトル
+  ...
 ```
 
 <Aside type="tip" title="記事番号の確認">
@@ -91,7 +95,7 @@ esa-cli list -q "新機能" > search-results.txt
 esa-cli list --query "新機能" > search-results.txt
 
 # 最新の記事の番号を取得
-esa-cli list 1 | grep -o '^\[[0-9]*\]' | tr -d '[]'
+esa-cli list 1 | grep -o '\[[0-9]*\]' | tr -d '[]'
 ```
 
 ## 注意事項

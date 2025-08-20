@@ -182,6 +182,7 @@ func showHelp() {
 	fmt.Println("使用方法:")
 	fmt.Println("  esa-cli setup                 初期設定")
 	fmt.Println("  esa-cli list [件数]            記事一覧を表示（デフォルト10件）")
+	fmt.Println("    例: esa-cli list 20          # 最新20件を表示")
 	fmt.Println("    オプション:")
 	fmt.Println("      -c, --category <カテゴリ>  カテゴリでフィルタリング")
 	fmt.Println("      -t, --tag <タグ>          タグでフィルタリング")
@@ -310,9 +311,32 @@ func runList(cmd *pflag.FlagSet, category, tag, query, user string) {
 		os.Exit(1)
 	}
 
+	// 検索条件の表示
+	fmt.Println("🔍 記事を検索中...")
+	if category != "" {
+		fmt.Printf("   カテゴリ: %s\n", category)
+	}
+	if tag != "" {
+		fmt.Printf("   タグ: %s\n", tag)
+	}
+	if user != "" {
+		fmt.Printf("   作成者: %s\n", user)
+	}
+	if query != "" {
+		fmt.Printf("   検索ワード: %s\n", query)
+	}
+	fmt.Printf("   取得件数: %d件\n", options.Limit)
+	fmt.Println()
+
 	// 記事一覧を表示
+	if len(posts) == 0 {
+		fmt.Println("📭 条件に一致する記事が見つかりませんでした。")
+		return
+	}
+
+	fmt.Printf("📋 記事一覧 (%d件):\n", len(posts))
 	for _, post := range posts {
-		fmt.Printf("%d: %s\n", post.Number, post.FullName)
+		fmt.Printf("  [%d] %s\n", post.Number, post.FullName)
 	}
 }
 
@@ -338,8 +362,26 @@ func runFetch(cmd *pflag.FlagSet, category, tag, query, user string, latest bool
 			Category: category,
 			Tag:      tag,
 			Query:    query,
+			User:     user,
 			Limit:    1,
 		}
+
+		// 検索条件の表示
+		fmt.Println("🔍 記事を検索中...")
+		if category != "" {
+			fmt.Printf("   カテゴリ: %s\n", category)
+		}
+		if tag != "" {
+			fmt.Printf("   タグ: %s\n", tag)
+		}
+		if user != "" {
+			fmt.Printf("   作成者: %s\n", user)
+		}
+		if query != "" {
+			fmt.Printf("   検索ワード: %s\n", query)
+		}
+		fmt.Println()
+
 		posts, err := client.ListPosts(context.Background(), options)
 		if err != nil {
 			fmt.Printf("❌ エラー: %v\n", err)
@@ -350,6 +392,7 @@ func runFetch(cmd *pflag.FlagSet, category, tag, query, user string, latest bool
 			os.Exit(1)
 		}
 		post := posts[0]
+		fmt.Printf("📥 最新記事をダウンロード中: [%d] %s\n", post.Number, post.FullName)
 		// 最新記事の番号で後続の処理を行う
 		fetchArticle(client, post.Number)
 		return
@@ -401,6 +444,14 @@ func fetchArticle(client *api.Client, postNumber int) {
 	}
 
 	fmt.Printf("✅ 記事をダウンロードしました: %s\n", fileName)
+	fmt.Printf("📄 ファイル名: %s\n", fileName)
+	fmt.Printf("📝 タイトル: %s\n", post.Name)
+	if post.Category != "" {
+		fmt.Printf("📁 カテゴリ: %s\n", post.Category)
+	}
+	if len(post.Tags) > 0 {
+		fmt.Printf("🏷️  タグ: %s\n", strings.Join(post.Tags, ", "))
+	}
 }
 
 func runUpdate(cmd *pflag.FlagSet, noWip bool, category, addTags, removeTags, message string) {

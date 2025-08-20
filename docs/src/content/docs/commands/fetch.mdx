@@ -22,7 +22,7 @@ esa-cli fetch <article_number>
 
 ### パラメータ
 
-- `article_number` - ダウンロードする記事の番号（必須）
+- `article_number` - ダウンロードする記事の番号（`-l`オプション未使用時は必須）
 
 <Aside type="tip" title="記事番号の取得">
 記事番号は`list`コマンドで確認できます。記事番号が分からない場合は、まず`esa-cli list`で記事一覧を確認してください。
@@ -30,11 +30,15 @@ esa-cli fetch <article_number>
 
 ### オプション
 
-- `-c, --category` - カテゴリでフィルタ
-- `-t, --tag` - タグでフィルタ
-- `-q, --query` - 検索ワードでフィルタ
-- `-u, --user` - 作成者でフィルタ
-- `-l, --latest` - 最新の記事をダウンロード
+- `-c, --category` - カテゴリでフィルタ（`-l`オプションと併用時のみ有効）
+- `-t, --tag` - タグでフィルタ（`-l`オプションと併用時のみ有効）
+- `-q, --query` - 検索ワードでフィルタ（`-l`オプションと併用時のみ有効）
+- `-u, --user` - 作成者でフィルタ（`-l`オプションと併用時のみ有効）
+- `-l, --latest` - 最新の記事をダウンロード（フィルタリングオプションと併用可能）
+
+<Aside type="note" title="フィルタリングオプションの動作">
+フィルタリングオプション（`-c`, `-t`, `-q`, `-u`）は`-l`（`--latest`）オプションと併用した場合のみ機能します。記事番号を直接指定する場合、これらのオプションは無視されます。
+</Aside>
 
 ### ファイル形式
 
@@ -110,7 +114,7 @@ esa-cli fetch-all -c "開発/ドキュメント"
 esa-cli fetch-all -t API
 
 # 取得件数を制限して一括ダウンロード
-esa-cli fetch-all -c 開発 -l 5
+esa-cli fetch-all -c 開発 --limit 5
 ```
 
 ### バックアップ
@@ -122,7 +126,7 @@ BACKUP_DIR="./backup/$DATE"
 mkdir -p "$BACKUP_DIR"
 
 # 全記事をバックアップ
-esa-cli fetch-all -l 100
+esa-cli fetch-all --limit 100
 mv *-*.md "$BACKUP_DIR"
 ```
 
