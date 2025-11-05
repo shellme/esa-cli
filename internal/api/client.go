@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -104,30 +105,38 @@ func (c *Client) ListPosts(ctx context.Context, options *ListPostsOptions) ([]*t
 	path := "/teams/" + c.teamName + "/posts"
 
 	// クエリパラメータを構築
-	params := []string{}
+	queryParams := url.Values{}
 	if options != nil {
 		if options.Category != "" {
-			params = append(params, "category="+options.Category)
+			queryParams.Set("category", options.Category)
 		}
+		// タグ、ユーザー、クエリを組み合わせてqパラメータに設定
+		// esa.ioのAPIでは:
+		// - タグ検索は #タグ名 の形式
+		// - ユーザー検索は @ユーザー名 の形式
+		qParts := []string{}
 		if options.Tag != "" {
-			params = append(params, "tag="+options.Tag)
-		}
-		if options.Query != "" {
-			params = append(params, "q="+options.Query)
+			qParts = append(qParts, "#"+options.Tag)
 		}
 		if options.User != "" {
-			params = append(params, "user="+options.User)
+			qParts = append(qParts, "@"+options.User)
+		}
+		if options.Query != "" {
+			qParts = append(qParts, options.Query)
+		}
+		if len(qParts) > 0 {
+			queryParams.Set("q", strings.Join(qParts, " "))
 		}
 		if options.Limit > 0 {
-			params = append(params, "per_page="+strconv.Itoa(options.Limit))
+			queryParams.Set("per_page", strconv.Itoa(options.Limit))
 		}
 	}
-	url := baseURL + path
-	if len(params) > 0 {
-		url += "?" + strings.Join(params, "&")
+	apiURL := baseURL + path
+	if len(queryParams) > 0 {
+		apiURL += "?" + queryParams.Encode()
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", apiURL, nil)
 	if err != nil {
 		return nil, err
 	}

@@ -282,6 +282,7 @@ func runList(cmd *pflag.FlagSet, category, tag, query, user string) {
 		Tag:      tag,
 		Query:    query,
 		User:     user,
+		Limit:    10, // デフォルト値
 	}
 	if len(cmd.Args()) > 0 {
 		if l, err := strconv.Atoi(cmd.Args()[0]); err == nil && l > 0 {
@@ -327,6 +328,20 @@ func runList(cmd *pflag.FlagSet, category, tag, query, user string) {
 	}
 	fmt.Printf("   取得件数: %d件\n", options.Limit)
 	fmt.Println()
+
+	// カテゴリでフィルタリング（クライアント側で追加フィルタリング）
+	// esa.ioのAPIがカテゴリで正しくフィルタリングしていない場合の対処
+	if category != "" {
+		filteredPosts := []*types.Post{}
+		for _, post := range posts {
+			// FullNameは "カテゴリ/記事名" の形式なので、カテゴリ部分をチェック
+			// 完全一致または、指定したカテゴリ配下の記事をフィルタリング
+			if strings.HasPrefix(post.FullName, category+"/") || post.FullName == category {
+				filteredPosts = append(filteredPosts, post)
+			}
+		}
+		posts = filteredPosts
+	}
 
 	// 記事一覧を表示
 	if len(posts) == 0 {
@@ -387,6 +402,18 @@ func runFetch(cmd *pflag.FlagSet, category, tag, query, user string, latest bool
 			fmt.Printf("❌ エラー: %v\n", err)
 			os.Exit(1)
 		}
+
+		// カテゴリでフィルタリング（クライアント側で追加フィルタリング）
+		if category != "" {
+			filteredPosts := []*types.Post{}
+			for _, post := range posts {
+				if strings.HasPrefix(post.FullName, category+"/") || post.FullName == category {
+					filteredPosts = append(filteredPosts, post)
+				}
+			}
+			posts = filteredPosts
+		}
+
 		if len(posts) == 0 {
 			fmt.Println("❌ 条件に一致する記事が見つかりません")
 			os.Exit(1)
@@ -527,12 +554,30 @@ func runUpdate(cmd *pflag.FlagSet, noWip bool, category, addTags, removeTags, me
 	} else {
 		updateReq.Category = fm.Category
 	}
+
+	// タグの設定
+	tags := fm.Tags
 	if addTags != "" {
-		updateReq.Tags = append(fm.Tags, strings.Split(addTags, ",")...)
-	} else {
-		updateReq.Tags = fm.Tags
+		tags = append(tags, strings.Split(addTags, ",")...)
 	}
-	// TODO: removeTagsの処理を追加する
+	if removeTags != "" {
+		removeTagList := strings.Split(removeTags, ",")
+		for _, removeTag := range removeTagList {
+			removeTag = strings.TrimSpace(removeTag)
+			for i, tag := range tags {
+				if tag == removeTag {
+					tags = append(tags[:i], tags[i+1:]...)
+					break
+				}
+			}
+		}
+	}
+	updateReq.Tags = tags
+
+	// WIP状態の設定
+	if noWip {
+		updateReq.Wip = false
+	}
 
 	updatedPost, err := client.UpdatePost(context.Background(), postNumber, updateReq)
 	if err != nil {
