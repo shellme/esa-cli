@@ -32,6 +32,7 @@ export default defineConfig({
 						{ label: 'ガイド', link: '/guides/' },
 						{ label: '基本的な使い方', link: '/guides/basic-usage' },
 						{ label: '高度な使い方', link: '/guides/advanced-usage' },
+						{ label: 'AIエディタ向けガイド', link: '/guides/ai-editor-guide' },
 					]
 				},
 				{
