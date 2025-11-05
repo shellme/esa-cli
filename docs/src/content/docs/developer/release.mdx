@@ -101,8 +101,9 @@ esa-cliのリリースは、GitHub Actionsによって大部分が自動化さ�
     2.  `esa-cli`リポジトリの[Secretsページ](https://github.com/shellme/esa-cli/settings/secrets/actions)で、`HOMEBREW_TAP_GITHUB_TOKEN`という名前のSecretにそのトークンが正しく設定されていることを確認します。
 
 **Homebrew Formulaの自動更新が不完全**
--   **原因**: GoReleaserの設定で、Homebrew Formulaの更新処理に問題がある場合があります。
+-   **原因**: GoReleaserの設定で、Homebrew Formulaの更新処理に問題がある場合があります。特に、`branch`や`folder`が明示的に指定されていない場合、GoReleaserが正しいブランチやパスを判断できない可能性があります。
 -   **解決策**:
-    1.  `homebrew-esa-cli`リポジトリで、自動更新されたFormulaの内容を確認します。
-    2.  必要に応じて、手動でバージョン番号とSHA256を更新します。
-    3.  設定ファイルの競合が発生した場合は、既存の設定ファイルを削除してから再インストールします。
+    1.  `goreleaser.yml`の`brews`セクションに`branch: main`と`folder: Formula`が明示的に指定されているか確認します。
+    2.  `homebrew-esa-cli`リポジトリで、自動更新されたFormulaの内容を確認します。
+    3.  必要に応じて、手動でバージョン番号とSHA256を更新します。
+    4.  設定ファイルの競合が発生した場合は、既存の設定ファイルを削除してから再インストールします。

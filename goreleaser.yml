@@ -24,7 +24,9 @@ brews:
     repository:
       owner: shellme
       name: homebrew-esa-cli
+      branch: main
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    folder: Formula
     commit_author:
       name: goreleaserbot
       email: goreleaser@users.noreply.github.com
