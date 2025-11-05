@@ -54,11 +54,13 @@ func main() {
 	var fetchQuery string
 	var fetchUser string
 	var fetchLatest bool
+	var fetchPrint bool
 	fetchCmd.StringVarP(&fetchCategory, "category", "c", "", "カテゴリでフィルタリング")
 	fetchCmd.StringVarP(&fetchTag, "tag", "t", "", "タグでフィルタリング")
 	fetchCmd.StringVarP(&fetchQuery, "query", "q", "", "検索ワードでフィルタリング")
 	fetchCmd.StringVarP(&fetchUser, "user", "u", "", "作成者でフィルタリング")
 	fetchCmd.BoolVarP(&fetchLatest, "latest", "l", false, "最新の記事をダウンロード")
+	fetchCmd.BoolVarP(&fetchPrint, "print", "p", false, "ファイルに保存せず標準出力に表示")
 
 	// updateコマンドのオプション
 	var noWip bool
@@ -120,7 +122,7 @@ func main() {
 		runList(listCmd, category, tag, query, user)
 	case "fetch":
 		fetchCmd.Parse(os.Args[2:])
-		runFetch(fetchCmd, fetchCategory, fetchTag, fetchQuery, fetchUser, fetchLatest)
+		runFetch(fetchCmd, fetchCategory, fetchTag, fetchQuery, fetchUser, fetchLatest, fetchPrint)
 	case "update":
 		updateCmd.Parse(os.Args[2:])
 		runUpdate(updateCmd, noWip, updateCategory, addTags, removeTags, message)
@@ -157,6 +159,7 @@ func showHelp() {
 	fmt.Println("      -q, --query <検索ワード>   検索ワードでフィルタリング")
 	fmt.Println("      -u, --user <作成者>       作成者でフィルタリング")
 	fmt.Println("      -l, --latest              最新の記事をダウンロード")
+	fmt.Println("      -p, --print               ファイルに保存せず標準出力に表示")
 	fmt.Println("  esa-cli update <ファイル名>    記事を更新")
 	fmt.Println("    オプション:")
 	fmt.Println("      -n, --no-wip              WIP状態を解除")
@@ -192,7 +195,9 @@ func showHelp() {
 	fmt.Println("  esa-cli list -q 認証            # 認証を含む記事一覧")
 	fmt.Println("  esa-cli list -u 自分のユーザー名 # 自分が作成した記事一覧")
 	fmt.Println("  esa-cli fetch 123              # 記事123をダウンロード")
+	fmt.Println("  esa-cli fetch 123 -p            # 記事123を標準出力に表示（ファイル保存なし）")
 	fmt.Println("  esa-cli fetch -c 開発 -l        # 開発カテゴリの最新記事をダウンロード")
+	fmt.Println("  esa-cli fetch -c 開発 -l -p     # 開発カテゴリの最新記事を標準出力に表示")
 	fmt.Println("  esa-cli fetch -t API -l         # APIタグの最新記事をダウンロード")
 	fmt.Println("  esa-cli fetch -q 認証 -l        # 認証を含む最新記事をダウンロード")
 	fmt.Println("  esa-cli update 123-title.md    # 記事を更新")
@@ -328,7 +333,7 @@ func runList(cmd *pflag.FlagSet, category, tag, query, user string) {
 	}
 }
 
-func runFetch(cmd *pflag.FlagSet, category, tag, query, user string, latest bool) {
+func runFetch(cmd *pflag.FlagSet, category, tag, query, user string, latest bool, printToStdout bool) {
 	cfg, err := config.Load()
 	if err != nil {
 		fmt.Printf("❌ 設定の読み込みに失敗しました: %v\n", err)
@@ -392,9 +397,13 @@ func runFetch(cmd *pflag.FlagSet, category, tag, query, user string, latest bool
 			os.Exit(1)
 		}
 		post := posts[0]
-		fmt.Printf("📥 最新記事をダウンロード中: [%d] %s\n", post.Number, post.FullName)
+		if printToStdout {
+			fmt.Fprintf(os.Stderr, "📥 最新記事を取得中: [%d] %s\n", post.Number, post.FullName)
+		} else {
+			fmt.Printf("📥 最新記事をダウンロード中: [%d] %s\n", post.Number, post.FullName)
+		}
 		// 最新記事の番号で後続の処理を行う
-		fetchArticle(client, post.Number)
+		fetchArticle(client, post.Number, printToStdout)
 		return
 	}
 
@@ -411,15 +420,15 @@ func runFetch(cmd *pflag.FlagSet, category, tag, query, user string, latest bool
 		os.Exit(1)
 	}
 
-	fetchArticle(client, postNumber)
+	fetchArticle(client, postNumber, printToStdout)
 }
 
 // 記事を取得してファイルに書き込む共通関数
-func fetchArticle(client *api.Client, postNumber int) {
+func fetchArticle(client *api.Client, postNumber int, printToStdout bool) {
 	// 記事を取得
 	post, err := client.FetchPost(context.Background(), postNumber)
 	if err != nil {
-		fmt.Printf("❌ エラー: %v\n", err)
+		fmt.Fprintf(os.Stderr, "❌ エラー: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -433,24 +442,30 @@ func fetchArticle(client *api.Client, postNumber int) {
 
 	content, err := markdown.GenerateContent(fm, post.BodyMd)
 	if err != nil {
-		fmt.Printf("❌ ファイル内容の生成に失敗しました: %v\n", err)
+		fmt.Fprintf(os.Stderr, "❌ ファイル内容の生成に失敗しました: %v\n", err)
 		os.Exit(1)
 	}
 
-	fileName := fmt.Sprintf("%d-%s.md", post.Number, post.Name)
-	if err := os.WriteFile(fileName, content, 0644); err != nil {
-		fmt.Printf("❌ ファイルの書き込みに失敗しました: %v\n", err)
-		os.Exit(1)
-	}
+	if printToStdout {
+		// 標準出力にMarkdownコンテンツを出力
+		fmt.Print(string(content))
+	} else {
+		// ファイルに保存
+		fileName := fmt.Sprintf("%d-%s.md", post.Number, post.Name)
+		if err := os.WriteFile(fileName, content, 0644); err != nil {
+			fmt.Fprintf(os.Stderr, "❌ ファイルの書き込みに失敗しました: %v\n", err)
+			os.Exit(1)
+		}
 
-	fmt.Printf("✅ 記事をダウンロードしました: %s\n", fileName)
-	fmt.Printf("📄 ファイル名: %s\n", fileName)
-	fmt.Printf("📝 タイトル: %s\n", post.Name)
-	if post.Category != "" {
-		fmt.Printf("📁 カテゴリ: %s\n", post.Category)
-	}
-	if len(post.Tags) > 0 {
-		fmt.Printf("🏷️  タグ: %s\n", strings.Join(post.Tags, ", "))
+		fmt.Printf("✅ 記事をダウンロードしました: %s\n", fileName)
+		fmt.Printf("📄 ファイル名: %s\n", fileName)
+		fmt.Printf("📝 タイトル: %s\n", post.Name)
+		if post.Category != "" {
+			fmt.Printf("📁 カテゴリ: %s\n", post.Category)
+		}
+		if len(post.Tags) > 0 {
+			fmt.Printf("🏷️  タグ: %s\n", strings.Join(post.Tags, ", "))
+		}
 	}
 }
 
