@@ -99,12 +99,14 @@ func main() {
 	var createMessage string
 	var createWip bool
 	var createFile string
+	var createTemplate bool
 	createCmd.StringVarP(&createTitle, "title", "t", "", "記事のタイトル")
 	createCmd.StringVarP(&createCategory, "category", "c", "", "カテゴリ")
 	createCmd.StringVarP(&createTags, "tags", "g", "", "タグ（カンマ区切り）")
 	createCmd.StringVarP(&createMessage, "message", "m", "", "作成メッセージ")
 	createCmd.BoolVarP(&createWip, "wip", "w", false, "WIP状態で作成")
 	createCmd.StringVarP(&createFile, "file", "f", "", "既存のMarkdownファイルから作成")
+	createCmd.BoolVarP(&createTemplate, "template", "T", false, "esa.ioにアップロードせず、ローカルにテンプレートファイルのみ生成")
 
 	// 引数が指定されていない場合はヘルプを表示
 	if len(os.Args) < 2 {
@@ -131,7 +133,7 @@ func main() {
 		runMove(moveCmd, moveCategory, moveUser, moveQuery, moveTag, moveToCategory, moveMessage, moveForce)
 	case "create":
 		createCmd.Parse(os.Args[2:])
-		runCreate(createCmd, createTitle, createCategory, createTags, createMessage, createWip, createFile)
+		runCreate(createCmd, createTitle, createCategory, createTags, createMessage, createWip, createFile, createTemplate)
 	case "help":
 		showHelp()
 	default:
@@ -184,6 +186,7 @@ func showHelp() {
 	fmt.Println("      -m, --message <作成メッセージ> 作成メッセージ")
 	fmt.Println("      -w, --wip                 WIP状態で作成")
 	fmt.Println("      -f, --file <既存のMarkdownファイル> 既存のMarkdownファイルから作成")
+	fmt.Println("      -T, --template            ローカルにテンプレートファイルのみ生成（esa.ioにアップロードしない）")
 	fmt.Println("  esa-cli version                バージョン表示")
 	fmt.Println("  esa-cli help                   このヘルプを表示")
 	fmt.Println("")
@@ -210,6 +213,8 @@ func showHelp() {
 	fmt.Println("  esa-cli create \"新機能の説明\" -c 開発 -g API,新機能  # 新しい記事を作成")
 	fmt.Println("  esa-cli create \"API仕様書\" -c 開発/API -g API,ドキュメント -w  # WIP状態で記事を作成")
 	fmt.Println("  esa-cli create -f draft.md -c 開発/ドキュメント  # 既存ファイルから記事を作成")
+	fmt.Println("  esa-cli create \"下書き記事\" -T  # ローカルにテンプレートファイルのみ生成")
+	fmt.Println("  esa-cli create \"技術記事\" -c 技術/Go -g Go,技術記事 -T  # カテゴリ・タグ付きテンプレートを生成")
 	fmt.Println("")
 	fmt.Println("💡 初回利用時は 'esa-cli setup' で設定を行ってください")
 }
@@ -702,19 +707,21 @@ func runMove(cmd *pflag.FlagSet, category, user, query, tag, toCategory, message
 	}
 }
 
-func runCreate(cmd *pflag.FlagSet, title, category, tags, message string, wip bool, file string) {
-	// 設定の読み込み
-	cfg, err := config.Load()
-	if err != nil {
-		fmt.Printf("❌ 設定の読み込みに失敗しました: %v\n", err)
-		fmt.Println("💡 'esa-cli setup' で初期設定を行ってください")
-		os.Exit(1)
-	}
+func runCreate(cmd *pflag.FlagSet, title, category, tags, message string, wip bool, file string, template bool) {
+	// 設定の読み込み（テンプレートモードでない場合のみ必要）
+	if !template {
+		cfg, err := config.Load()
+		if err != nil {
+			fmt.Printf("❌ 設定の読み込みに失敗しました: %v\n", err)
+			fmt.Println("💡 'esa-cli setup' で初期設定を行ってください")
+			os.Exit(1)
+		}
 
-	if cfg.AccessToken == "" || cfg.TeamName == "" {
-		fmt.Println("❌ 設定が完了していません")
-		fmt.Println("💡 'esa-cli setup' で初期設定を行ってください")
-		os.Exit(1)
+		if cfg.AccessToken == "" || cfg.TeamName == "" {
+			fmt.Println("❌ 設定が完了していません")
+			fmt.Println("💡 'esa-cli setup' で初期設定を行ってください")
+			os.Exit(1)
+		}
 	}
 
 	// 位置引数からタイトルを取得
@@ -724,7 +731,11 @@ func runCreate(cmd *pflag.FlagSet, title, category, tags, message string, wip bo
 
 	// 対話形式での入力（タイトルが指定されていない場合）
 	if title == "" && file == "" {
-		fmt.Println("📝 新しい記事を作成します")
+		if template {
+			fmt.Println("📝 新しい記事のテンプレートを作成します")
+		} else {
+			fmt.Println("📝 新しい記事を作成します")
+		}
 		fmt.Print("記事のタイトル: ")
 		fmt.Scanln(&title)
 		if title == "" {
@@ -733,7 +744,11 @@ func runCreate(cmd *pflag.FlagSet, title, category, tags, message string, wip bo
 		}
 	}
 
-	client := newAPIClient(cfg.TeamName, cfg.AccessToken)
+	var client *api.Client
+	if !template {
+		cfg, _ := config.Load()
+		client = newAPIClient(cfg.TeamName, cfg.AccessToken)
+	}
 
 	// タグの処理
 	var tagList []string
@@ -783,7 +798,43 @@ func runCreate(cmd *pflag.FlagSet, title, category, tags, message string, wip bo
 		createBody.BodyMd = body
 	}
 
-	// 新しい記事の作成
+	if template {
+		// テンプレートモード: ローカルファイルのみ生成
+		fm := types.FrontMatter{
+			Title:    createBody.Name,
+			Category: createBody.Category,
+			Tags:     createBody.Tags,
+			Wip:      createBody.Wip,
+		}
+
+		content, err := markdown.GenerateContent(fm, createBody.BodyMd)
+		if err != nil {
+			fmt.Printf("❌ ファイル内容の生成に失敗しました: %v\n", err)
+			os.Exit(1)
+		}
+
+		// ファイル名を生成（記事番号がないので、タイトルベース）
+		fileName := sanitizeFilename(title)
+		fileName = fmt.Sprintf("draft-%s.md", fileName)
+
+		if err := os.WriteFile(fileName, content, 0644); err != nil {
+			fmt.Printf("❌ ファイルの書き込みに失敗しました: %v\n", err)
+			os.Exit(1)
+		}
+
+		fmt.Printf("✅ テンプレートファイルを作成しました: %s\n", fileName)
+		fmt.Printf("📝 タイトル: %s\n", createBody.Name)
+		if createBody.Category != "" {
+			fmt.Printf("📁 カテゴリ: %s\n", createBody.Category)
+		}
+		if len(createBody.Tags) > 0 {
+			fmt.Printf("🏷️  タグ: %s\n", strings.Join(createBody.Tags, ", "))
+		}
+		fmt.Printf("💡 編集後、'esa-cli create -f %s' でesa.ioにアップロードできます\n", fileName)
+		return
+	}
+
+	// 通常モード: esa.ioに記事を作成
 	post, err := client.CreatePost(context.Background(), createBody)
 	if err != nil {
 		fmt.Printf("❌ 記事の作成に失敗しました: %v\n", err)
@@ -813,4 +864,25 @@ func runCreate(cmd *pflag.FlagSet, title, category, tags, message string, wip bo
 
 	fmt.Printf("✅ 新しい記事が作成されました: %s\n", post.FullName)
 	fmt.Printf("📄 ローカルファイル: %s\n", fileName)
+}
+
+// sanitizeFilename ファイル名に使用できない文字を置換
+func sanitizeFilename(name string) string {
+	replacements := map[string]string{
+		"/": "-", "\\": "-", ":": "-", "*": "-",
+		"?": "-", "\"": "-", "<": "-", ">": "-", "|": "-",
+		" ": "-",
+	}
+
+	result := name
+	for old, new := range replacements {
+		result = strings.ReplaceAll(result, old, new)
+	}
+
+	// 長すぎる場合は切り詰め
+	if len(result) > 100 {
+		result = result[:100]
+	}
+
+	return result
 }
