@@ -32,6 +32,7 @@ esa-cli create [タイトル] [オプション]
 - `-m, --message` - 作成メッセージ
 - `-w, --wip` - WIP状態で作成
 - `-f, --file` - 既存のMarkdownファイルから作成
+- `-T, --template` - esa.ioにアップロードせず、ローカルにテンプレートファイルのみ生成
 
 <Aside type="tip" title="対話形式での作成">
 タイトルを指定しない場合、対話形式でタイトルを入力できます。初心者の方には対話形式での作成をお勧めします。
@@ -41,9 +42,8 @@ esa-cli create [タイトル] [オプション]
 
 作成された記事はMarkdown形式で保存され、以下の命名規則に従います：
 
-```
-<article_number>-<article-title>.md
-```
+- 通常モード: `<article_number>-<article-title>.md`
+- テンプレートモード: `draft-<article-title>.md`
 
 ### ファイル構造
 
@@ -121,6 +121,27 @@ esa-cli create "Go言語での並行処理" -c "技術/Go" -g "Go,並行処理,�
 # 階層カテゴリでの作成
 esa-cli create "デプロイ手順書" -c "開発/インフラ/デプロイ" -g "デプロイ,インフラ"
 ```
+
+### テンプレートファイルの生成
+
+```bash
+# ローカルにテンプレートファイルのみ生成（esa.ioにアップロードしない）
+esa-cli create "下書き記事" -T
+esa-cli create "下書き記事" --template
+
+# カテゴリ・タグ付きテンプレートを生成
+esa-cli create "技術記事" -c "技術/Go" -g "Go,技術記事" -T
+
+# WIP状態のテンプレートを生成
+esa-cli create "下書き" -w -T
+
+# 編集後、esa.ioにアップロード
+esa-cli create -f draft-下書き記事.md
+```
+
+<Aside type="tip" title="テンプレートファイルの使い方">
+`--template`オプションを使用すると、esa.ioにアップロードせずにローカルにフロントマター付きのテンプレートファイルを生成できます。ローカルで記事を下書きしてから、編集後に`-f`オプションでesa.ioにアップロードするワークフローに便利です。テンプレートファイルは`draft-タイトル.md`形式で生成されます。設定不要でテンプレートファイルを生成できます。
+</Aside>
 
 ## ファイルベース作成の詳細
 

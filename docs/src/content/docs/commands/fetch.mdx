@@ -35,6 +35,7 @@ esa-cli fetch <article_number>
 - `-q, --query` - 検索ワードでフィルタ（`-l`オプションと併用時のみ有効）
 - `-u, --user` - 作成者でフィルタ（`-l`オプションと併用時のみ有効）
 - `-l, --latest` - 最新の記事をダウンロード（フィルタリングオプションと併用可能）
+- `-p, --print` - ファイルに保存せず標準出力に表示（AIエディタなどでの参照に便利）
 
 <Aside type="note" title="フィルタリングオプションの動作">
 フィルタリングオプション（`-c`, `-t`, `-q`, `-u`）は`-l`（`--latest`）オプションと併用した場合のみ機能します。記事番号を直接指定する場合、これらのオプションは無視されます。
@@ -101,6 +102,27 @@ esa-cli fetch --user 自分のユーザー名 --latest
 esa-cli fetch -q 認証 -l
 esa-cli fetch --query 認証 --latest
 ```
+
+### 標準出力への表示
+
+```bash
+# 記事を標準出力に表示（ファイル保存なし）
+esa-cli fetch 123 -p
+esa-cli fetch 123 --print
+
+# 最新記事を標準出力に表示
+esa-cli fetch -c 開発 -l -p
+
+# パイプで他のコマンドに渡す
+esa-cli fetch 123 -p | grep "キーワード"
+
+# AIエディタなどで使用する場合
+esa-cli fetch 123 -p > article.md  # ファイルにリダイレクト
+```
+
+<Aside type="tip" title="--printオプションの使い方">
+`--print`オプションを使用すると、ファイルに保存せずに標準出力にMarkdown形式で記事を表示します。AIエディタや他のツールで記事内容を参照する際に便利です。エラーメッセージは標準エラー出力に出力されるため、標準出力はMarkdownコンテンツのみになります。
+</Aside>
 
 ### 一括ダウンロード
 
