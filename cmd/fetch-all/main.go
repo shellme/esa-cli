@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/shellme/esa-cli/internal/api"
@@ -62,17 +63,64 @@ func main() {
 	// 記事一覧の取得
 	options := &api.ListPostsOptions{
 		Limit:    *limit,
-		Category: *category,
+		Category: "", // カテゴリはAPIパラメータとして使わず、クライアント側でフィルタリング
 		Tag:      *tag,
 		User:     *user,
 		Query:    *query,
 	}
-
-	posts, err := client.ListPosts(context.Background(), options)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "記事一覧の取得に失敗しました: %v\n", err)
-		os.Exit(1)
+	// カテゴリが指定されている場合は、より多くの記事を取得してフィルタリング
+	// esa.ioのAPIはカテゴリパラメータを使うとサブカテゴリの記事を返さない場合があるため
+	if *category != "" {
+		if *limit < 100 {
+			options.Limit = 100 // カテゴリフィルタリングのため、より多くの記事を取得
+		}
 	}
+
+	// カテゴリが指定されている場合は、複数ページを取得してフィルタリング
+	// esa.ioのAPIはカテゴリパラメータを使うとサブカテゴリの記事を返さない場合があるため
+	// 注: 全ページ取得は時間がかかるため、最大20ページ（2000件）までに制限
+	var allPosts []*types.Post
+	if *category != "" {
+		// カテゴリフィルタリングのため、複数ページを取得（最大20ページ、2000件まで）
+		maxPages := 20 // 最大20ページまで
+		perPage := 100  // 最大値
+		for page := 1; page <= maxPages; page++ {
+			options.Page = page
+			options.Limit = perPage
+			pagePosts, err := client.ListPosts(context.Background(), options)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "記事一覧の取得に失敗しました: %v\n", err)
+				os.Exit(1)
+			}
+			if len(pagePosts) == 0 {
+				break // 取得できる記事がなくなったら終了
+			}
+			allPosts = append(allPosts, pagePosts...)
+			if len(pagePosts) < perPage {
+				break // 最後のページに達したら終了
+			}
+		}
+		// カテゴリでフィルタリング（クライアント側で追加フィルタリング）
+		filteredPosts := []*types.Post{}
+		for _, post := range allPosts {
+			// FullNameは "カテゴリ/記事名" の形式なので、カテゴリ部分をチェック
+			// 完全一致または、指定したカテゴリ配下の記事をフィルタリング
+			if strings.HasPrefix(post.FullName, *category+"/") || post.FullName == *category {
+				filteredPosts = append(filteredPosts, post)
+			}
+		}
+		allPosts = filteredPosts
+	} else {
+		// カテゴリが指定されていない場合は、通常通り1ページのみ取得
+		pagePosts, err := client.ListPosts(context.Background(), options)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "記事一覧の取得に失敗しました: %v\n", err)
+			os.Exit(1)
+		}
+		allPosts = pagePosts
+	}
+
+	posts := allPosts
 
 	if len(posts) == 0 {
 		fmt.Println("📭 条件に一致する記事が見つかりませんでした。")

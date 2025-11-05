@@ -20,7 +20,8 @@ type ListPostsOptions struct {
 	Tag      string
 	Query    string
 	User     string
-	Limit    int
+	Limit    int // per_pageパラメータ（最大100）
+	Page     int // pageパラメータ（1から始まる）
 }
 
 type HTTPDoer interface {
@@ -129,6 +130,9 @@ func (c *Client) ListPosts(ctx context.Context, options *ListPostsOptions) ([]*t
 		}
 		if options.Limit > 0 {
 			queryParams.Set("per_page", strconv.Itoa(options.Limit))
+		}
+		if options.Page > 0 {
+			queryParams.Set("page", strconv.Itoa(options.Page))
 		}
 	}
 	apiURL := baseURL + path
