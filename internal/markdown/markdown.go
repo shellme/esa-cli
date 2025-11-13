@@ -33,15 +33,23 @@ func GenerateContent(fm types.FrontMatter, body string) ([]byte, error) {
 }
 
 // ParseContent parses markdown content and separates front matter and body.
+// Supports both LF (\n) and CRLF (\r\n) line endings.
 func ParseContent(content []byte) (types.FrontMatter, string, error) {
-	parts := bytes.SplitN(content, []byte("---\n"), 3)
+	var parts [][]byte
+
+	// Try LF first (most common)
+	parts = bytes.SplitN(content, []byte("---\n"), 3)
 	if len(parts) < 3 {
-		return types.FrontMatter{}, "", fmt.Errorf("failed to parse front matter")
+		// Try CRLF as fallback
+		parts = bytes.SplitN(content, []byte("---\r\n"), 3)
+		if len(parts) < 3 {
+			return types.FrontMatter{}, "", fmt.Errorf("failed to parse front matter: front matter delimiter not found. The file may have incorrect line endings (CRLF vs LF). Please ensure the file uses LF line endings or convert it using your editor.")
+		}
 	}
 
 	var fm types.FrontMatter
 	if err := yaml.Unmarshal(parts[1], &fm); err != nil {
-		return types.FrontMatter{}, "", err
+		return types.FrontMatter{}, "", fmt.Errorf("failed to parse front matter YAML: %w", err)
 	}
 
 	body := strings.TrimSpace(string(parts[2]))

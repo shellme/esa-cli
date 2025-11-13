@@ -1,0 +1,174 @@
+package markdown
+
+import (
+	"testing"
+
+	"github.com/shellme/esa-cli/pkg/types"
+)
+
+func TestGenerateContent(t *testing.T) {
+	fm := types.FrontMatter{
+		Title:    "Test Article",
+		Category: "Test",
+		Tags:     []string{"tag1", "tag2"},
+		Wip:      false,
+	}
+
+	content, err := GenerateContent(fm, "Body content\nLine 2")
+	if err != nil {
+		t.Fatalf("GenerateContent failed: %v", err)
+	}
+
+	if len(content) == 0 {
+		t.Error("Generated content is empty")
+	}
+
+	// Check that content starts with front matter delimiter
+	if !startsWith(content, []byte("---\n")) {
+		t.Error("Generated content should start with '---\\n'")
+	}
+}
+
+func TestParseContent_LF(t *testing.T) {
+	// Test with LF line endings
+	content := []byte("---\ntitle: Test Article\ncategory: Test\ntags:\n  - tag1\n  - tag2\nwip: false\n---\n\nBody content\nLine 2")
+
+	fm, body, err := ParseContent(content)
+	if err != nil {
+		t.Fatalf("ParseContent failed: %v", err)
+	}
+
+	if fm.Title != "Test Article" {
+		t.Errorf("Expected title 'Test Article', got '%s'", fm.Title)
+	}
+
+	if fm.Category != "Test" {
+		t.Errorf("Expected category 'Test', got '%s'", fm.Category)
+	}
+
+	if len(fm.Tags) != 2 {
+		t.Errorf("Expected 2 tags, got %d", len(fm.Tags))
+	}
+
+	if body != "Body content\nLine 2" {
+		t.Errorf("Expected body 'Body content\\nLine 2', got '%s'", body)
+	}
+}
+
+func TestParseContent_CRLF(t *testing.T) {
+	// Test with CRLF line endings
+	content := []byte("---\r\ntitle: Test Article\r\ncategory: Test\r\ntags:\r\n  - tag1\r\n  - tag2\r\nwip: false\r\n---\r\n\r\nBody content\r\nLine 2")
+
+	fm, body, err := ParseContent(content)
+	if err != nil {
+		t.Fatalf("ParseContent failed: %v", err)
+	}
+
+	if fm.Title != "Test Article" {
+		t.Errorf("Expected title 'Test Article', got '%s'", fm.Title)
+	}
+
+	if fm.Category != "Test" {
+		t.Errorf("Expected category 'Test', got '%s'", fm.Category)
+	}
+
+	if len(fm.Tags) != 2 {
+		t.Errorf("Expected 2 tags, got %d", len(fm.Tags))
+	}
+
+	// Body should be trimmed, but CRLF should be preserved in content
+	if body == "" {
+		t.Error("Body should not be empty")
+	}
+}
+
+func TestParseContent_Invalid(t *testing.T) {
+	// Test with invalid content (no front matter)
+	content := []byte("Just some content without front matter")
+
+	_, _, err := ParseContent(content)
+	if err == nil {
+		t.Error("ParseContent should fail for content without front matter")
+	}
+
+	// Check that error message mentions line endings
+	if err != nil && !contains(err.Error(), "line endings") {
+		t.Errorf("Error message should mention line endings, got: %v", err)
+	}
+}
+
+func TestParseContent_RoundTrip(t *testing.T) {
+	// Test that GenerateContent and ParseContent work together
+	originalFm := types.FrontMatter{
+		Title:           "Round Trip Test",
+		Category:        "Test/Category",
+		Tags:            []string{"test", "roundtrip"},
+		Wip:             true,
+		RemoteUpdatedAt: "2025-01-01T00:00:00Z",
+	}
+	originalBody := "This is a test body\nWith multiple lines\nAnd some content"
+
+	// Generate content
+	content, err := GenerateContent(originalFm, originalBody)
+	if err != nil {
+		t.Fatalf("GenerateContent failed: %v", err)
+	}
+
+	// Parse it back
+	parsedFm, parsedBody, err := ParseContent(content)
+	if err != nil {
+		t.Fatalf("ParseContent failed: %v", err)
+	}
+
+	// Compare
+	if parsedFm.Title != originalFm.Title {
+		t.Errorf("Title mismatch: expected '%s', got '%s'", originalFm.Title, parsedFm.Title)
+	}
+
+	if parsedFm.Category != originalFm.Category {
+		t.Errorf("Category mismatch: expected '%s', got '%s'", originalFm.Category, parsedFm.Category)
+	}
+
+	if len(parsedFm.Tags) != len(originalFm.Tags) {
+		t.Errorf("Tags count mismatch: expected %d, got %d", len(originalFm.Tags), len(parsedFm.Tags))
+	}
+
+	if parsedFm.Wip != originalFm.Wip {
+		t.Errorf("Wip mismatch: expected %v, got %v", originalFm.Wip, parsedFm.Wip)
+	}
+
+	if parsedFm.RemoteUpdatedAt != originalFm.RemoteUpdatedAt {
+		t.Errorf("RemoteUpdatedAt mismatch: expected '%s', got '%s'", originalFm.RemoteUpdatedAt, parsedFm.RemoteUpdatedAt)
+	}
+
+	if parsedBody != originalBody {
+		t.Errorf("Body mismatch: expected '%s', got '%s'", originalBody, parsedBody)
+	}
+}
+
+// Helper functions
+func startsWith(s, prefix []byte) bool {
+	if len(s) < len(prefix) {
+		return false
+	}
+	for i := range prefix {
+		if s[i] != prefix[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(substr) == 0 || indexOfSubstring(s, substr) >= 0)
+}
+
+func indexOfSubstring(s, substr string) int {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return i
+		}
+	}
+	return -1
+}
+
