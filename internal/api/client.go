@@ -63,10 +63,6 @@ func (c *Client) TestConnection() error {
 
 	req.Header.Set("Authorization", "Bearer "+c.accessToken)
 
-	// デバッグログ
-	fmt.Printf("🔍 リクエストURL: %s\n", url)
-	fmt.Printf("🔍 リクエストヘッダー: %v\n", req.Header)
-
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return fmt.Errorf("ネットワークエラー: %v", err)
@@ -78,11 +74,6 @@ func (c *Client) TestConnection() error {
 	if err != nil {
 		return fmt.Errorf("レスポンスの読み取りに失敗: %v", err)
 	}
-
-	// デバッグログ
-	fmt.Printf("🔍 レスポンスステータス: %d\n", resp.StatusCode)
-	fmt.Printf("🔍 レスポンスヘッダー: %v\n", resp.Header)
-	fmt.Printf("🔍 レスポンスボディ: %s\n", string(body))
 
 	switch resp.StatusCode {
 	case 200:

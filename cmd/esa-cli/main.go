@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -55,12 +56,14 @@ func main() {
 	var fetchUser string
 	var fetchLatest bool
 	var fetchPrint bool
+	var fetchOverwrite bool
 	fetchCmd.StringVarP(&fetchCategory, "category", "c", "", "カテゴリでフィルタリング")
 	fetchCmd.StringVarP(&fetchTag, "tag", "t", "", "タグでフィルタリング")
 	fetchCmd.StringVarP(&fetchQuery, "query", "q", "", "検索ワードでフィルタリング")
 	fetchCmd.StringVarP(&fetchUser, "user", "u", "", "作成者でフィルタリング")
 	fetchCmd.BoolVarP(&fetchLatest, "latest", "l", false, "最新の記事をダウンロード")
 	fetchCmd.BoolVarP(&fetchPrint, "print", "p", false, "ファイルに保存せず標準出力に表示")
+	fetchCmd.BoolVar(&fetchOverwrite, "overwrite", false, "既存のローカルファイルを上書き")
 
 	// updateコマンドのオプション
 	var noWip bool
@@ -122,13 +125,15 @@ func main() {
 	var createTags string
 	var createMessage string
 	var createWip bool
+	var createNoWip bool
 	var createFile string
 	var createTemplate bool
 	createCmd.StringVarP(&createTitle, "title", "t", "", "記事のタイトル")
 	createCmd.StringVarP(&createCategory, "category", "c", "", "カテゴリ")
 	createCmd.StringVarP(&createTags, "tags", "g", "", "タグ（カンマ区切り）")
 	createCmd.StringVarP(&createMessage, "message", "m", "", "作成メッセージ")
-	createCmd.BoolVarP(&createWip, "wip", "w", false, "WIP状態で作成")
+	createCmd.BoolVarP(&createWip, "wip", "w", false, "WIP状態で作成（デフォルト）")
+	createCmd.BoolVar(&createNoWip, "no-wip", false, "公開状態で作成")
 	createCmd.StringVarP(&createFile, "file", "f", "", "既存のMarkdownファイルから作成")
 	createCmd.BoolVarP(&createTemplate, "template", "T", false, "esa.ioにアップロードせず、ローカルにテンプレートファイルのみ生成")
 
@@ -148,7 +153,7 @@ func main() {
 		runList(listCmd, category, tag, query, user)
 	case "fetch":
 		fetchCmd.Parse(os.Args[2:])
-		runFetch(fetchCmd, fetchCategory, fetchTag, fetchQuery, fetchUser, fetchLatest, fetchPrint)
+		runFetch(fetchCmd, fetchCategory, fetchTag, fetchQuery, fetchUser, fetchLatest, fetchPrint, fetchOverwrite)
 	case "update":
 		updateCmd.Parse(os.Args[2:])
 		runUpdate(updateCmd, updateOptions{noWip, updateCategory, addTags, removeTags, message})
@@ -164,7 +169,7 @@ func main() {
 		runUpdateAll(updateAll)
 	case "create":
 		createCmd.Parse(os.Args[2:])
-		runCreate(createCmd, createTitle, createCategory, createTags, createMessage, createWip, createFile, createTemplate)
+		runCreate(createCmd, createTitle, createCategory, createTags, createMessage, createWip, createNoWip, createFile, createTemplate)
 	case "help":
 		showHelp()
 	default:
@@ -193,6 +198,7 @@ func showHelp() {
 	fmt.Println("      -u, --user <作成者>       作成者でフィルタリング")
 	fmt.Println("      -l, --latest              最新の記事をダウンロード")
 	fmt.Println("      -p, --print               ファイルに保存せず標準出力に表示")
+	fmt.Println("      --overwrite               既存のローカルファイルを上書き")
 	fmt.Println("  esa-cli update <ファイル名>    記事を更新")
 	fmt.Println("    オプション:")
 	fmt.Println("      -n, --no-wip              WIP状態を解除")
@@ -227,7 +233,8 @@ func showHelp() {
 	fmt.Println("      -c, --category <カテゴリ>  カテゴリ")
 	fmt.Println("      -g, --tags <タグ>          タグ（カンマ区切り）")
 	fmt.Println("      -m, --message <作成メッセージ> 作成メッセージ")
-	fmt.Println("      -w, --wip                 WIP状態で作成")
+	fmt.Println("      -w, --wip                 WIP状態で作成（デフォルト）")
+	fmt.Println("      --no-wip                  公開状態で作成")
 	fmt.Println("      -f, --file <既存のMarkdownファイル> 既存のMarkdownファイルから作成")
 	fmt.Println("      -T, --template            ローカルにテンプレートファイルのみ生成（esa.ioにアップロードしない）")
 	fmt.Println("  esa-cli version                バージョン表示")
@@ -274,33 +281,17 @@ func runSetup() {
 }
 
 func runList(cmd *pflag.FlagSet, category, tag, query, user string) {
-	options := &api.ListPostsOptions{
-		Category: "", // カテゴリはAPIパラメータとして使わず、クライアント側でフィルタリング
-		Tag:      tag,
-		Query:    query,
-		User:     user,
-		Limit:    10, // デフォルト値
-	}
+	limit := 10 // デフォルト値
 	if len(cmd.Args()) > 0 {
-		if l, err := strconv.Atoi(cmd.Args()[0]); err == nil && l > 0 {
-			options.Limit = l
+		l, err := strconv.Atoi(cmd.Args()[0])
+		if err != nil || l <= 0 {
+			fmt.Printf("❌ 無効な件数です: %s\n", cmd.Args()[0])
+			os.Exit(1)
 		}
+		limit = l
 	}
 
-	cfg, err := config.Load()
-	if err != nil {
-		fmt.Printf("❌ 設定の読み込みに失敗しました: %v\n", err)
-		fmt.Println("💡 'esa-cli setup' で初期設定を行ってください")
-		os.Exit(1)
-	}
-
-	if cfg.AccessToken == "" || cfg.TeamName == "" {
-		fmt.Println("❌ 設定が完了していません")
-		fmt.Println("💡 'esa-cli setup' で初期設定を行ってください")
-		os.Exit(1)
-	}
-
-	client := newAPIClient(cfg.TeamName, cfg.AccessToken)
+	client := loadClient()
 
 	// 検索条件の表示
 	fmt.Println("🔍 記事を検索中...")
@@ -316,60 +307,18 @@ func runList(cmd *pflag.FlagSet, category, tag, query, user string) {
 	if query != "" {
 		fmt.Printf("   検索ワード: %s\n", query)
 	}
-	fmt.Printf("   取得件数: %d件\n", options.Limit)
 	fmt.Println()
 
-	// カテゴリが指定されている場合は、より多くの記事を取得してフィルタリング
-	// esa.ioのAPIはカテゴリパラメータを使うとサブカテゴリの記事を返さない場合があるため
-	// カテゴリパラメータは使わず、クライアント側でフィルタリングする
-	// 注: 全ページ取得は時間がかかるため、最大500件（5ページ）までに制限
-	var allPosts []*types.Post
-	if category != "" {
-		// カテゴリフィルタリングのため、複数ページを取得（最大5ページ、500件まで）
-		// カテゴリパラメータは使わない（サブカテゴリも含めるため）
-		options.Category = ""
-		maxPages := 5  // 最大5ページまで
-		perPage := 100 // 最大値
-		for page := 1; page <= maxPages; page++ {
-			options.Page = page
-			options.Limit = perPage
-			pagePosts, err := client.ListPosts(context.Background(), options)
-			if err != nil {
-				fmt.Printf("❌ エラー: %v\n", err)
-				os.Exit(1)
-			}
-			if len(pagePosts) == 0 {
-				break // 取得できる記事がなくなったら終了
-			}
-			allPosts = append(allPosts, pagePosts...)
-			if len(pagePosts) < perPage {
-				break // 最後のページに達したら終了
-			}
-		}
-		// カテゴリでフィルタリング（クライアント側で追加フィルタリング）
-		filteredPosts := []*types.Post{}
-		for _, post := range allPosts {
-			// FullNameは "カテゴリ/記事名" の形式なので、カテゴリ部分をチェック
-			// 完全一致または、指定したカテゴリ配下の記事をフィルタリング
-			if strings.HasPrefix(post.FullName, category+"/") || post.FullName == category {
-				filteredPosts = append(filteredPosts, post)
-			}
-		}
-		allPosts = filteredPosts
-		if len(allPosts) >= maxPages*perPage {
-			fmt.Printf("⚠️  注意: 取得件数が上限（%d件）に達しました。すべての記事が取得できていない可能性があります。\n", maxPages*perPage)
-		}
-	} else {
-		// カテゴリが指定されていない場合は、通常通り1ページのみ取得
-		pagePosts, err := client.ListPosts(context.Background(), options)
-		if err != nil {
-			fmt.Printf("❌ エラー: %v\n", err)
-			os.Exit(1)
-		}
-		allPosts = pagePosts
+	posts, total, err := client.ListAllPosts(context.Background(), api.ListPostsOptions{
+		Category: category,
+		Tag:      tag,
+		Query:    query,
+		User:     user,
+	}, limit)
+	if err != nil {
+		fmt.Printf("❌ エラー: %v\n", err)
+		os.Exit(1)
 	}
-
-	posts := allPosts
 
 	// 記事一覧を表示
 	if len(posts) == 0 {
@@ -377,13 +326,13 @@ func runList(cmd *pflag.FlagSet, category, tag, query, user string) {
 		return
 	}
 
-	fmt.Printf("📋 記事一覧 (%d件):\n", len(posts))
+	fmt.Printf("📋 記事一覧 (%d件 / 全%d件):\n", len(posts), total)
 	for _, post := range posts {
 		fmt.Printf("  [%d] %s\n", post.Number, post.FullName)
 	}
 }
 
-func runFetch(cmd *pflag.FlagSet, category, tag, query, user string, latest bool, printToStdout bool) {
+func runFetch(cmd *pflag.FlagSet, category, tag, query, user string, latest bool, printToStdout, overwrite bool) {
 	cfg, err := config.Load()
 	if err != nil {
 		fmt.Printf("❌ 設定の読み込みに失敗しました: %v\n", err)
@@ -453,7 +402,7 @@ func runFetch(cmd *pflag.FlagSet, category, tag, query, user string, latest bool
 			fmt.Printf("📥 最新記事をダウンロード中: [%d] %s\n", post.Number, post.FullName)
 		}
 		// 最新記事の番号で後続の処理を行う
-		fetchArticle(client, post.Number, printToStdout)
+		fetchArticle(client, post.Number, printToStdout, overwrite)
 		return
 	}
 
@@ -470,11 +419,20 @@ func runFetch(cmd *pflag.FlagSet, category, tag, query, user string, latest bool
 		os.Exit(1)
 	}
 
-	fetchArticle(client, postNumber, printToStdout)
+	fetchArticle(client, postNumber, printToStdout, overwrite)
 }
 
 // 記事を取得してファイルに書き込む共通関数
-func fetchArticle(client *api.Client, postNumber int, printToStdout bool) {
+func fetchArticle(client *api.Client, postNumber int, printToStdout, overwrite bool) {
+	if !printToStdout && !overwrite {
+		existing, err := filepath.Glob(fmt.Sprintf("%d-*.md", postNumber))
+		if err == nil && len(existing) > 0 {
+			fmt.Fprintf(os.Stderr, "❌ ローカルファイルが既に存在します: %s\n", existing[0])
+			fmt.Fprintln(os.Stderr, "💡 上書きする場合は --overwrite を指定してください")
+			os.Exit(1)
+		}
+	}
+
 	// 記事を取得
 	post, err := client.FetchPost(context.Background(), postNumber)
 	if err != nil {
@@ -501,7 +459,7 @@ func fetchArticle(client *api.Client, postNumber int, printToStdout bool) {
 		fmt.Print(string(content))
 	} else {
 		// ファイルに保存
-		fileName := fmt.Sprintf("%d-%s.md", post.Number, post.Name)
+		fileName := fmt.Sprintf("%d-%s.md", post.Number, sanitizeArticleName(post.Name))
 		if err := os.WriteFile(fileName, content, 0644); err != nil {
 			fmt.Fprintf(os.Stderr, "❌ ファイルの書き込みに失敗しました: %v\n", err)
 			os.Exit(1)
@@ -519,7 +477,12 @@ func fetchArticle(client *api.Client, postNumber int, printToStdout bool) {
 	}
 }
 
-func runCreate(cmd *pflag.FlagSet, title, category, tags, message string, wip bool, file string, template bool) {
+func runCreate(cmd *pflag.FlagSet, title, category, tags, message string, wip, noWip bool, file string, template bool) {
+	if wip && noWip {
+		fmt.Println("❌ --wip と --no-wip は同時に指定できません")
+		os.Exit(1)
+	}
+
 	// 設定の読み込み（テンプレートモードでない場合のみ必要）
 	if !template {
 		cfg, err := config.Load()
@@ -577,7 +540,7 @@ func runCreate(cmd *pflag.FlagSet, title, category, tags, message string, wip bo
 		Category: category,
 		Tags:     tagList,
 		BodyMd:   "",
-		Wip:      wip,
+		Wip:      !noWip,
 		Message:  message,
 	}
 
@@ -606,7 +569,10 @@ func runCreate(cmd *pflag.FlagSet, title, category, tags, message string, wip bo
 		if len(fm.Tags) > 0 {
 			createBody.Tags = fm.Tags
 		}
-		createBody.Wip = fm.Wip
+		// フラグの指定がなければファイルのWIP状態に従う
+		if !wip && !noWip {
+			createBody.Wip = fm.Wip
+		}
 		createBody.BodyMd = body
 	}
 
@@ -668,7 +634,7 @@ func runCreate(cmd *pflag.FlagSet, title, category, tags, message string, wip bo
 		os.Exit(1)
 	}
 
-	fileName := fmt.Sprintf("%d-%s.md", post.Number, post.Name)
+	fileName := fmt.Sprintf("%d-%s.md", post.Number, sanitizeArticleName(post.Name))
 	if err := os.WriteFile(fileName, content, 0644); err != nil {
 		fmt.Printf("❌ ファイルの書き込みに失敗しました: %v\n", err)
 		os.Exit(1)
@@ -693,7 +659,7 @@ func sanitizeFilename(name string) string {
 
 	// 長すぎる場合は切り詰め
 	if len(result) > 100 {
-		result = result[:100]
+		result = strings.ToValidUTF8(result[:100], "")
 	}
 
 	return result

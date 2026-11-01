@@ -104,9 +104,6 @@ func Setup(client APIClient) error {
 		config.AccessToken = strings.TrimSpace(scanner.Text())
 	}
 
-	// デバッグログ（開発時のみ）
-	fmt.Printf("🔍 デバッグ: チーム名='%s', トークン='%s'\n", config.TeamName, config.AccessToken)
-
 	// 入力値の検証
 	if config.TeamName == "" {
 		return fmt.Errorf("チーム名が入力されていません")

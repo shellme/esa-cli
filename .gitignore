@@ -32,3 +32,6 @@ Thumbs.db
 # Build artifacts
 dist/
 build/ 
+
+# テストが生成する記事ファイル
+/cmd/esa-cli/*-*.md

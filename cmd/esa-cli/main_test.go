@@ -152,25 +152,25 @@ func TestFetch(t *testing.T) {
 	}{
 		{
 			name:    "記事を取得",
-			args:    []string{"fetch", "1"},
+			args:    []string{"fetch", "1", "--overwrite"},
 			mockRes: `{"number": 1, "name": "テスト記事", "category": "test", "tags": ["test"], "body_md": "# テスト記事\n\nこれはテスト記事です。"}`,
 			wantErr: false,
 		},
 		{
 			name:    "カテゴリーを指定",
-			args:    []string{"fetch", "1", "--category", "test"},
+			args:    []string{"fetch", "1", "--overwrite", "--category", "test"},
 			mockRes: `{"number": 1, "name": "テスト記事", "category": "test", "tags": ["test"], "body_md": "# テスト記事\n\nこれはテスト記事です。"}`,
 			wantErr: false,
 		},
 		{
 			name:    "タグを指定",
-			args:    []string{"fetch", "1", "--tag", "test"},
+			args:    []string{"fetch", "1", "--overwrite", "--tag", "test"},
 			mockRes: `{"number": 1, "name": "テスト記事", "category": "test", "tags": ["test"], "body_md": "# テスト記事\n\nこれはテスト記事です。"}`,
 			wantErr: false,
 		},
 		{
 			name:    "クエリを指定",
-			args:    []string{"fetch", "1", "--query", "テスト"},
+			args:    []string{"fetch", "1", "--overwrite", "--query", "テスト"},
 			mockRes: `{"number": 1, "name": "テスト記事", "category": "test", "tags": ["test"], "body_md": "# テスト記事\n\nこれはテスト記事です。"}`,
 			wantErr: false,
 		},
