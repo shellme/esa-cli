@@ -123,6 +123,9 @@ func TestList(t *testing.T) {
 }
 
 func TestFetch(t *testing.T) {
+	// 取得したファイルがリポジトリに残らないよう一時ディレクトリで実行
+	chdirTemp(t)
+
 	// テスト用の一時ディレクトリを作成
 	tmpDir := testutil.CreateTempDir(t)
 
