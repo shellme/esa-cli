@@ -229,13 +229,35 @@ esa-cli status "123-*.md"
 
 `fetch --overwrite` と `fetch-all --overwrite` は、上書き前のファイルを `.esa-cli-backup/` に保存します。
 
+### コメント
+
+```bash
+# 記事とコメントを標準出力に表示（要約など読み取り用）
+esa-cli fetch 123 --print --comments
+
+# コメントを 123-title.comments.md に保存
+esa-cli fetch 123 --comments
+
+# コメントを投稿
+esa-cli comment 123 --body "コメント本文"
+esa-cli comment 123 -f reply.md
+cat summary.md | esa-cli comment 123 -f - --force
+
+# 投稿せず内容だけを確認
+esa-cli comment 123 -f reply.md --dry-run
+```
+
+投稿前に内容を表示して確認します。標準入力から本文を渡す場合は確認に回答できないため、`--force` が必要です。コメントはトークンの持ち主の名義で投稿され、通知も届きます。編集と削除は公式CLIかWeb画面を使ってください。
+
+`--print --comments` の出力は読み取り用です。ファイルに保存して `update` に渡すと、コメントが本文に混ざります。
+
 ### 終了コード
 
 | コード | 意味 |
 |---|---|
 | 0 | 成功 |
 | 1 | エラー |
-| 2 | `update` / `update-all` を競合の確認などで中止 |
+| 2 | `update` / `update-all` / `comment` を確認で中止 |
 
 入力のできない環境では、上書きの確認は「いいえ」として扱います。
 
