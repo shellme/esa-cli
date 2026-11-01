@@ -1,4 +1,4 @@
 package version
 
 // Version is the current version of esa-cli
-const Version = "0.3.2"
+const Version = "0.3.3"
