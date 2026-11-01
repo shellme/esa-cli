@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -20,6 +21,8 @@ import (
 )
 
 const moveLimit = 100 // 一度に移動できる記事数の上限
+
+const exitCanceled = 2 // 競合の確認などで中止したときの終了コード
 
 var (
 	articleFilePattern = regexp.MustCompile(`^(\d+)-.+\.md$`)
@@ -73,7 +76,10 @@ func loadClient() *api.Client {
 func confirmPrompt(prompt string) bool {
 	fmt.Print(prompt)
 	var answer string
-	fmt.Scanln(&answer)
+	if _, err := fmt.Scanln(&answer); errors.Is(err, io.EOF) {
+		fmt.Println("\n⚠️  入力できないため「いいえ」として扱います")
+		return false
+	}
 	return strings.ToLower(answer) == "y"
 }
 
@@ -250,7 +256,7 @@ func runUpdate(cmd *pflag.FlagSet, opts updateOptions) {
 	err := updateFile(context.Background(), loadClient(), fileName, opts, confirmPrompt)
 	if errors.Is(err, errUpdateCanceled) {
 		fmt.Printf("🚫 %v\n", err)
-		return
+		os.Exit(exitCanceled)
 	}
 	if err != nil {
 		fmt.Printf("❌ %v\n", err)
@@ -362,16 +368,17 @@ func findArticleFiles(patterns []string) ([]string, error) {
 	return files, nil
 }
 
-// ファイルを一括更新し、失敗件数を返す
-func updateAllFiles(ctx context.Context, client *api.Client, files []string, opts updateOptions, confirm func(string) bool) int {
-	updated, canceled, failed := 0, 0, 0
+// ファイルを一括更新し、失敗件数と中止したファイルを返す
+func updateAllFiles(ctx context.Context, client *api.Client, files []string, opts updateOptions, confirm func(string) bool) (int, []string) {
+	updated, failed := 0, 0
+	var canceled []string
 	for _, file := range files {
 		fmt.Printf("📝 更新中: %s\n", file)
 		err := updateFile(ctx, client, file, opts, confirm)
 		switch {
 		case errors.Is(err, errUpdateCanceled):
 			fmt.Printf("   🚫 %v\n", err)
-			canceled++
+			canceled = append(canceled, file)
 		case err != nil:
 			fmt.Printf("   ❌ %v\n", err)
 			failed++
@@ -381,11 +388,14 @@ func updateAllFiles(ctx context.Context, client *api.Client, files []string, opt
 		}
 	}
 
-	fmt.Printf("\n📊 結果: 更新 %d件 / 中止 %d件 / 失敗 %d件\n", updated, canceled, failed)
+	fmt.Printf("\n📊 結果: 更新 %d件 / 中止 %d件 / 失敗 %d件\n", updated, len(canceled), failed)
+	for _, file := range canceled {
+		fmt.Printf("  🚫 中止: %s\n", file)
+	}
 	if updated > 0 {
 		mac.SendNotification("esa-cli", fmt.Sprintf("%d件の記事を更新しました", updated))
 	}
-	return failed
+	return failed, canceled
 }
 
 func runUpdateAll(opts updateAllOptions) {
@@ -420,8 +430,12 @@ func runUpdateAll(opts updateAllOptions) {
 		return
 	}
 
-	if updateAllFiles(context.Background(), loadClient(), files, opts.updateOptions, confirmPrompt) > 0 {
+	failed, canceled := updateAllFiles(context.Background(), loadClient(), files, opts.updateOptions, confirmPrompt)
+	if failed > 0 {
 		os.Exit(1)
+	}
+	if len(canceled) > 0 {
+		os.Exit(exitCanceled)
 	}
 }
 

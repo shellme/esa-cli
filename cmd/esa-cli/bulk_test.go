@@ -201,9 +201,9 @@ func TestUpdateFile(t *testing.T) {
 		client := api.NewClient("t", "token", fake)
 		writeArticle(t, "1-p1.md", "[]", baseTime.Format(time.RFC3339))
 
-		failed := updateAllFiles(context.Background(), client, []string{"1-p1.md"}, updateOptions{}, never)
-		if failed != 0 || len(fake.patches) != 0 {
-			t.Errorf("failed=%d patches=%d", failed, len(fake.patches))
+		failed, canceled := updateAllFiles(context.Background(), client, []string{"1-p1.md"}, updateOptions{}, never)
+		if failed != 0 || len(canceled) != 1 || len(fake.patches) != 0 {
+			t.Errorf("failed=%d canceled=%v patches=%d", failed, canceled, len(fake.patches))
 		}
 	})
 
