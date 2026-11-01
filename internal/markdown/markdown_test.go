@@ -202,3 +202,31 @@ func TestParseContent_KeepsFirstLineIndent(t *testing.T) {
 		t.Errorf("body = %q", body)
 	}
 }
+
+func TestLocalImages(t *testing.T) {
+	body := "![a](./a.png)\n![a2](./a.png \"title\")\n![b](images/b.JPG)\n" +
+		"![url](https://example.com/c.png)\n![data](data:image/png;base64,xx.png)\n![pdf](d.pdf)\n" +
+		"`![inline](e.png)`\n```\n![fence](f.png)\n```\n![after](g.gif)"
+	got := strings.Join(LocalImages(body), ",")
+	if got != "./a.png,images/b.JPG,g.gif" {
+		t.Errorf("images = %s", got)
+	}
+}
+
+func TestReplaceLocalImagesKeepsOtherText(t *testing.T) {
+	body := "text ![a](a.png \"t\") end\r\n```\n![a](a.png)\n```\n"
+	got := ReplaceLocalImages(body, func(string) string { return "https://x/a.png" })
+	want := "text ![a](https://x/a.png \"t\") end\r\n```\n![a](a.png)\n```\n"
+	if got != want {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestImageFilePath(t *testing.T) {
+	if got := ImageFilePath("dir/1-a.md", "img/a%20b.png"); got != "dir/img/a b.png" {
+		t.Errorf("got %s", got)
+	}
+	if got := ImageFilePath("dir/1-a.md", "/abs/a.png"); got != "/abs/a.png" {
+		t.Errorf("got %s", got)
+	}
+}

@@ -140,6 +140,11 @@ func updateFile(ctx context.Context, client *api.Client, path string, opts updat
 		}
 	}
 
+	body, err = uploadImages(ctx, client, path, fm, body)
+	if err != nil {
+		return err
+	}
+
 	category := fm.Category
 	if opts.category != "" {
 		category = opts.category
@@ -177,6 +182,46 @@ func updateFile(ctx context.Context, client *api.Client, path string, opts updat
 		return fmt.Errorf("ローカルファイルの書き込みに失敗しました: %w", err)
 	}
 	return nil
+}
+
+// 本文のローカル画像をアップロードしてURLに置換する。
+// 再実行で重複しないよう、1枚ごとにローカルファイルへ書き戻す
+func uploadImages(ctx context.Context, client *api.Client, path string, fm types.FrontMatter, body string) (string, error) {
+	for _, image := range markdown.LocalImages(body) {
+		fmt.Printf("🖼️  画像をアップロード中: %s\n", image)
+		imageURL, err := client.UploadAttachment(ctx, markdown.ImageFilePath(path, image))
+		if err != nil {
+			return "", fmt.Errorf("画像のアップロードに失敗したため中止しました (%s): %w", image, err)
+		}
+
+		body = markdown.ReplaceLocalImages(body, func(p string) string {
+			if p == image {
+				return imageURL
+			}
+			return p
+		})
+		content, err := markdown.GenerateContent(fm, body)
+		if err == nil {
+			err = os.WriteFile(path, content, 0644)
+		}
+		if err != nil {
+			return "", fmt.Errorf("ローカルファイルの書き込みに失敗しました: %w", err)
+		}
+	}
+	return body, nil
+}
+
+// ファイルに含まれるローカル画像を一覧表示する
+func printLocalImages(path string) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return
+	}
+	if _, body, err := markdown.ParseContent(content); err == nil {
+		for _, image := range markdown.LocalImages(body) {
+			fmt.Printf("      🖼️  %s\n", image)
+		}
+	}
 }
 
 func postContent(post *types.Post) ([]byte, error) {
@@ -355,6 +400,9 @@ func runUpdateAll(opts updateAllOptions) {
 	fmt.Printf("📋 更新対象のファイル (%d件):\n", len(files))
 	for _, file := range files {
 		fmt.Printf("  - %s\n", file)
+		if opts.dryRun {
+			printLocalImages(file)
+		}
 	}
 	if opts.dryRun {
 		return

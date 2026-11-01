@@ -23,11 +23,13 @@ var baseTime = time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 
 // fakeEsa 記事の状態を持つesa APIの偽物
 type fakeEsa struct {
-	posts     map[int]map[string]interface{}
-	fetchCode int
-	patches   []map[string]interface{}
-	queries   []string
-	perPage   int
+	posts      map[int]map[string]interface{}
+	fetchCode  int
+	patches    []map[string]interface{}
+	queries    []string
+	perPage    int
+	uploads    int
+	uploadCode int
 }
 
 func newFakeEsa() *fakeEsa {
@@ -48,6 +50,14 @@ func (f *fakeEsa) respond(code int, v interface{}) *http.Response {
 }
 
 func (f *fakeEsa) Do(req *http.Request) (*http.Response, error) {
+	if strings.HasSuffix(req.URL.Path, "/attachments") {
+		if f.uploadCode != 0 {
+			return f.respond(f.uploadCode, nil), nil
+		}
+		f.uploads++
+		url := fmt.Sprintf("https://files.esa.io/uploads/%d.png", f.uploads)
+		return f.respond(201, map[string]interface{}{"attachment": map[string]interface{}{"url": url}}), nil
+	}
 	if match := regexp.MustCompile(`/posts/(\d+)$`).FindStringSubmatch(req.URL.Path); match != nil {
 		number, _ := strconv.Atoi(match[1])
 		post, ok := f.posts[number]
@@ -104,6 +114,16 @@ func writeArticle(t *testing.T, path, tags, updatedAt string) {
 	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func appendBody(t *testing.T, path, body string) {
+	t.Helper()
+	file, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+	file.WriteString(body)
 }
 
 func never(string) bool { return false }
@@ -220,6 +240,61 @@ func TestUpdateFile(t *testing.T) {
 		}
 		if len(fake.patches) != 1 {
 			t.Errorf("patches=%d", len(fake.patches))
+		}
+	})
+
+	t.Run("画像をアップロードして本文をURLに置換する", func(t *testing.T) {
+		chdirTemp(t)
+		fake := newFakeEsa()
+		fake.add(1, "src", true)
+		client := api.NewClient("t", "token", fake)
+		os.WriteFile("a.png", []byte("png"), 0644)
+		writeArticle(t, "1-p1.md", "[]", baseTime.Format(time.RFC3339))
+		appendBody(t, "1-p1.md", "![a](a.png)\n![a](a.png)\n")
+
+		if err := updateFile(context.Background(), client, "1-p1.md", updateOptions{}, never); err != nil {
+			t.Fatal(err)
+		}
+		want := "![a](https://files.esa.io/uploads/1.png)\n![a](https://files.esa.io/uploads/1.png)"
+		if fake.uploads != 1 || fake.patches[0]["body_md"] != want {
+			t.Errorf("uploads=%d body=%v", fake.uploads, fake.patches[0]["body_md"])
+		}
+	})
+
+	t.Run("画像の失敗で更新せず成功分はファイルに残す", func(t *testing.T) {
+		chdirTemp(t)
+		fake := newFakeEsa()
+		fake.add(1, "src", true)
+		client := api.NewClient("t", "token", fake)
+		os.WriteFile("a.png", []byte("png"), 0644)
+		writeArticle(t, "1-p1.md", "[]", baseTime.Format(time.RFC3339))
+		appendBody(t, "1-p1.md", "![a](a.png)\n![b](missing.png)\n")
+
+		if err := updateFile(context.Background(), client, "1-p1.md", updateOptions{}, never); err == nil {
+			t.Fatal("エラーになるべき")
+		}
+		if len(fake.patches) != 0 {
+			t.Error("更新してはいけない")
+		}
+		content, _ := os.ReadFile("1-p1.md")
+		if !strings.Contains(string(content), "uploads/1.png") || !strings.Contains(string(content), "remote_updated_at") {
+			t.Errorf("content = %s", content)
+		}
+	})
+
+	t.Run("競合を拒否したら画像をアップロードしない", func(t *testing.T) {
+		chdirTemp(t)
+		fake := newFakeEsa()
+		fake.add(1, "src", true)
+		fake.posts[1]["updated_at"] = baseTime.Add(time.Hour)
+		client := api.NewClient("t", "token", fake)
+		os.WriteFile("a.png", []byte("png"), 0644)
+		writeArticle(t, "1-p1.md", "[]", baseTime.Format(time.RFC3339))
+		appendBody(t, "1-p1.md", "![a](a.png)\n")
+
+		updateFile(context.Background(), client, "1-p1.md", updateOptions{}, never)
+		if fake.uploads != 0 {
+			t.Errorf("uploads=%d", fake.uploads)
 		}
 	})
 

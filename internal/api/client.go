@@ -6,8 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -293,6 +296,61 @@ func (c *Client) CreatePost(ctx context.Context, post types.CreatePostBody) (*ty
 	}
 
 	return &createdPost, nil
+}
+
+// UploadAttachment ファイルをアップロードし、記事に貼れるURLを返す
+func (c *Client) UploadAttachment(ctx context.Context, path string) (string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+
+	var buf bytes.Buffer
+	form := multipart.NewWriter(&buf)
+	part, err := form.CreateFormFile("file", filepath.Base(path))
+	if err != nil {
+		return "", err
+	}
+	if _, err := part.Write(data); err != nil {
+		return "", err
+	}
+	if err := form.Close(); err != nil {
+		return "", err
+	}
+
+	apiURL := fmt.Sprintf("https://api.esa.io/v1/teams/%s/attachments", c.teamName)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader(buf.Bytes()))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Authorization", "Bearer "+c.accessToken)
+	req.Header.Set("Content-Type", form.FormDataContentType())
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("API request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusForbidden {
+		return "", fmt.Errorf("API returned status: %s（トークンに添付ファイルの書き込み権限が必要です）", resp.Status)
+	}
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		return "", fmt.Errorf("API returned status: %s", resp.Status)
+	}
+
+	var result struct {
+		Attachment struct {
+			URL string `json:"url"`
+		} `json:"attachment"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", fmt.Errorf("failed to parse response: %w", err)
+	}
+	if result.Attachment.URL == "" {
+		return "", fmt.Errorf("レスポンスに添付ファイルのURLがありません")
+	}
+	return result.Attachment.URL, nil
 }
 
 // BulkUpdateCategory 複数の記事のカテゴリを一括更新

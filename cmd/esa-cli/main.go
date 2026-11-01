@@ -613,6 +613,24 @@ func runCreate(cmd *pflag.FlagSet, title, category, tags, message string, wip, n
 	}
 
 	// 通常モード: esa.ioに記事を作成
+	if file != "" {
+		content, err := os.ReadFile(file)
+		if err != nil {
+			fmt.Printf("❌ ファイルの読み込みに失敗しました: %v\n", err)
+			os.Exit(1)
+		}
+		fileFm, _, err := markdown.ParseContent(content)
+		if err != nil {
+			fmt.Printf("❌ ファイルの解析に失敗しました: %v\n", err)
+			os.Exit(1)
+		}
+		createBody.BodyMd, err = uploadImages(context.Background(), client, file, fileFm, createBody.BodyMd)
+		if err != nil {
+			fmt.Printf("❌ %v\n", err)
+			os.Exit(1)
+		}
+	}
+
 	post, err := client.CreatePost(context.Background(), createBody)
 	if err != nil {
 		fmt.Printf("❌ 記事の作成に失敗しました: %v\n", err)
