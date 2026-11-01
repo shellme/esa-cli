@@ -23,13 +23,12 @@ var baseTime = time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 
 // fakeEsa 記事の状態を持つesa APIの偽物
 type fakeEsa struct {
-	posts      map[int]map[string]interface{}
-	fetchCode  int
-	patches    []map[string]interface{}
-	queries    []string
-	perPage    int
-	uploads    int
-	uploadCode int
+	posts     map[int]map[string]interface{}
+	fetchCode int
+	patches   []map[string]interface{}
+	queries   []string
+	perPage   int
+	uploads   int
 }
 
 func newFakeEsa() *fakeEsa {
@@ -51,9 +50,6 @@ func (f *fakeEsa) respond(code int, v interface{}) *http.Response {
 
 func (f *fakeEsa) Do(req *http.Request) (*http.Response, error) {
 	if strings.HasSuffix(req.URL.Path, "/attachments") {
-		if f.uploadCode != 0 {
-			return f.respond(f.uploadCode, nil), nil
-		}
 		f.uploads++
 		url := fmt.Sprintf("https://files.esa.io/uploads/%d.png", f.uploads)
 		return f.respond(201, map[string]interface{}{"attachment": map[string]interface{}{"url": url}}), nil
@@ -395,4 +391,55 @@ func TestFetchAllPosts(t *testing.T) {
 			t.Error(err)
 		}
 	})
+}
+
+func TestCompareArticle(t *testing.T) {
+	setup := func(t *testing.T, body string) (*fakeEsa, *api.Client) {
+		chdirTemp(t)
+		fake := newFakeEsa()
+		fake.add(1, "src", true, "a", "b")
+		fake.posts[1]["body_md"] = "line1\r\nline2\r\n"
+		writeArticle(t, "1-p1.md", "[b, a]", baseTime.Format(time.RFC3339))
+		appendBody(t, "1-p1.md", body)
+		return fake, api.NewClient("t", "token", fake)
+	}
+	check := func(t *testing.T, client *api.Client, want string) {
+		t.Helper()
+		state, _, _, err := compareArticle(context.Background(), client, "1-p1.md")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if state != want {
+			t.Errorf("state = %s", state)
+		}
+	}
+
+	t.Run("改行コードとタグ順の違いは変更なし", func(t *testing.T) {
+		_, client := setup(t, "line1\nline2\n")
+		check(t, client, stateClean)
+	})
+	t.Run("ローカルのみ変更", func(t *testing.T) {
+		_, client := setup(t, "edited\n")
+		check(t, client, stateLocalChanged)
+	})
+	t.Run("esa側が新しく内容が違えば要確認", func(t *testing.T) {
+		fake, client := setup(t, "edited\n")
+		fake.posts[1]["updated_at"] = baseTime.Add(time.Hour)
+		check(t, client, stateRemoteNewer)
+	})
+}
+
+func TestBackupFile(t *testing.T) {
+	chdirTemp(t)
+	os.WriteFile("1-p1.md", []byte("local"), 0644)
+	if err := backupFile("1-p1.md"); err != nil {
+		t.Fatal(err)
+	}
+	files, _ := filepath.Glob(filepath.Join(backupDir, "1-p1.md.*"))
+	if len(files) != 1 {
+		t.Fatalf("files = %v", files)
+	}
+	if content, _ := os.ReadFile(files[0]); string(content) != "local" {
+		t.Errorf("content = %s", content)
+	}
 }

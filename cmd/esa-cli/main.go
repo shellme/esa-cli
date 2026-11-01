@@ -167,6 +167,10 @@ func main() {
 		updateAllCmd.Parse(os.Args[2:])
 		updateAll.patterns = updateAllCmd.Args()
 		runUpdateAll(updateAll)
+	case "diff":
+		runDiff(os.Args[2:])
+	case "status":
+		runStatus(os.Args[2:])
 	case "create":
 		createCmd.Parse(os.Args[2:])
 		runCreate(createCmd, createTitle, createCategory, createTags, createMessage, createWip, createNoWip, createFile, createTemplate)
@@ -217,6 +221,8 @@ func showHelp() {
 	fmt.Println("      -n, --no-wip / -c, --category / -a, --add-tags / -r, --remove-tags / -m, --message")
 	fmt.Println("      -f, --force               一覧の確認なしで実行（競合時の確認は省略されません）")
 	fmt.Println("      --dry-run                 更新せず対象のファイルだけを表示")
+	fmt.Println("  esa-cli diff <ファイル名>      ローカルとesaの差分を表示")
+	fmt.Println("  esa-cli status [パターン]      記事ファイルの状態を一覧表示（デフォルトは*.md）")
 	fmt.Println("  esa-cli move                  記事を一括移動（絞り込み条件が1つ以上必要）")
 	fmt.Println("    オプション:")
 	fmt.Println("      -c, --category <移動元カテゴリ> 移動元のカテゴリ")
@@ -459,6 +465,12 @@ func fetchArticle(client *api.Client, postNumber int, printToStdout, overwrite b
 		fmt.Print(string(content))
 	} else {
 		// ファイルに保存
+		if existing, _ := filepath.Glob(fmt.Sprintf("%d-*.md", postNumber)); len(existing) > 0 {
+			if err := backupFile(existing[0]); err != nil {
+				fmt.Fprintf(os.Stderr, "❌ バックアップに失敗しました: %v\n", err)
+				os.Exit(1)
+			}
+		}
 		fileName := fmt.Sprintf("%d-%s.md", post.Number, sanitizeArticleName(post.Name))
 		if err := os.WriteFile(fileName, content, 0644); err != nil {
 			fmt.Fprintf(os.Stderr, "❌ ファイルの書き込みに失敗しました: %v\n", err)

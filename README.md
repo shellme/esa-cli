@@ -198,6 +198,23 @@ esa-cli update-all "*.md" -m 一括更新
 
 `--force` を付けても、競合時の確認は省略されません。
 
+### 差分と状態の確認
+
+```bash
+# ローカルとesaの差分を表示
+esa-cli diff 123-article-title.md
+
+# カレントディレクトリの記事ファイルの状態を一覧表示
+esa-cli status
+esa-cli status "123-*.md"
+```
+
+状態は「変更なし」「ローカル変更」「要確認（esa側に更新あり）」のいずれかです。要確認はesa側が更新されていて内容も異なる状態で、ローカルにも変更があるとは限りません。`update-all --dry-run` でも同じ状態を確認できます。
+
+### バックアップ
+
+`fetch --overwrite` と `fetch-all --overwrite` は、上書き前のファイルを `.esa-cli-backup/` に保存します。
+
 ### 記事の一括移動
 
 ```bash

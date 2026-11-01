@@ -298,6 +298,14 @@ func fetchAllPosts(ctx context.Context, client *api.Client, opts fetchAllOptions
 			continue
 		}
 
+		if len(existing) > 0 {
+			if err := backupFile(existing[0]); err != nil {
+				fmt.Printf("❌ [%d] %s: %v\n", post.Number, post.Name, err)
+				failed++
+				continue
+			}
+		}
+
 		content, err := postContent(post)
 		if err == nil {
 			err = os.WriteFile(fileName, content, 0644)
@@ -398,14 +406,14 @@ func runUpdateAll(opts updateAllOptions) {
 	}
 
 	fmt.Printf("📋 更新対象のファイル (%d件):\n", len(files))
+	if opts.dryRun {
+		if printStatuses(context.Background(), loadClient(), files) > 0 {
+			os.Exit(1)
+		}
+		return
+	}
 	for _, file := range files {
 		fmt.Printf("  - %s\n", file)
-		if opts.dryRun {
-			printLocalImages(file)
-		}
-	}
-	if opts.dryRun {
-		return
 	}
 	if !opts.force && !confirmPrompt("\n上記のファイルを更新しますか？ (y/N): ") {
 		fmt.Println("🚫 更新を中止しました。")
