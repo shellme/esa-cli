@@ -1,6 +1,7 @@
 package markdown
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/shellme/esa-cli/pkg/types"
@@ -172,3 +173,32 @@ func indexOfSubstring(s, substr string) int {
 	return -1
 }
 
+func TestGenerateContent_EndsWithSingleNewline(t *testing.T) {
+	tests := map[string]string{
+		"改行なし":    "Body",
+		"改行1つ":    "Body\n",
+		"複数の改行":   "Body\n\n",
+		"CRLFの改行": "Body\r\n",
+	}
+	for name, body := range tests {
+		t.Run(name, func(t *testing.T) {
+			content, err := GenerateContent(types.FrontMatter{Title: "T"}, body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !strings.HasSuffix(string(content), "\n\nBody\n") {
+				t.Errorf("content = %q", content)
+			}
+		})
+	}
+}
+
+func TestParseContent_KeepsFirstLineIndent(t *testing.T) {
+	_, body, err := ParseContent([]byte("---\ntitle: T\n---\n\n    code\ntext\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if body != "    code\ntext" {
+		t.Errorf("body = %q", body)
+	}
+}

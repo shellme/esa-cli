@@ -26,8 +26,11 @@ func GenerateContent(fm types.FrontMatter, body string) ([]byte, error) {
 	// ---
 	buf.WriteString("---\n\n")
 
-	// body
-	buf.WriteString(body)
+	// body（ファイルは改行1つで終える）
+	if body = strings.TrimRight(body, "\r\n"); body != "" {
+		buf.WriteString(body)
+		buf.WriteString("\n")
+	}
 
 	return buf.Bytes(), nil
 }
@@ -52,7 +55,8 @@ func ParseContent(content []byte) (types.FrontMatter, string, error) {
 		return types.FrontMatter{}, "", fmt.Errorf("failed to parse front matter YAML: %w", err)
 	}
 
-	body := strings.TrimSpace(string(parts[2]))
+	// 前後の空行だけを除き、1行目のインデントは残す
+	body := strings.Trim(string(parts[2]), "\r\n")
 
 	return fm, body, nil
 }
