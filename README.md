@@ -276,33 +276,9 @@ esa-cli move --category 開発 --tag API --user 自分のユーザー名 --to �
 esa-cli help
 ```
 
-## Mac特有の便利な使い方
+## macOSの通知
 
-### Finderとの連携
-
-```bash
-# 記事をダウンロードしてFinderで開く
-esa-cli fetch 123 && open .
-```
-
-### お気に入りエディタで直接開く
-
-```bash
-# VS Codeで開く
-esa-cli fetch 123 && code 123-*.md
-
-# Typoraで開く
-esa-cli fetch 123 && open -a Typora 123-*.md
-```
-
-### 通知機能
-
-記事のダウンロードや更新が完了すると、macOSの通知が表示されます。
-
-### Spotlight検索の活用
-
-ダウンロードした記事には、Spotlight検索用のメタデータが自動的に追加されます。
-Finderの検索バーで記事のタイトルやカテゴリを検索できます。
+`fetch-all` と `update-all` が完了すると、macOSの通知が表示されます。
 
 ## トラブルシューティング
 
@@ -325,43 +301,7 @@ Q: アクセストークンが無効になりました
 A: 新しいトークンを生成し、`esa-cli setup` を再実行してください。
 
 Q: `esa-cli` コマンドが見つかりません
-A: 以下の点を確認してください：
-
-1. パスが正しく設定されているか確認
-```bash
-echo $PATH
-```
-
-2. `/usr/local/bin` がパスに含まれているか確認
-
-3. 使用しているシェルに応じて、以下の設定ファイルにパスを追加：
-
-- bashの場合（`~/.bashrc` または `~/.bash_profile`）:
-```bash
-export PATH="/usr/local/bin:$PATH"
-```
-
-- zshの場合（`~/.zshrc` または `~/.zprofile`）:
-```bash
-export PATH="/usr/local/bin:$PATH"
-```
-
-- fishの場合（`~/.config/fish/config.fish`）:
-```fish
-set -gx PATH /usr/local/bin $PATH
-```
-
-4. 設定を反映
-```bash
-# bashの場合
-source ~/.bashrc  # または source ~/.bash_profile
-
-# zshの場合
-source ~/.zshrc  # または source ~/.zprofile
-
-# fishの場合
-source ~/.config/fish/config.fish
-```
+A: `which esa-cli` で確認し、インストール先（Homebrewなら `brew --prefix` の `bin`）を `PATH` に追加してください。
 
 ### サポート
 
@@ -380,83 +320,9 @@ MIT License
 
 ## 開発者向け
 
-開発ルールとリリース手順は [CLAUDE.md](CLAUDE.md) にまとめています。
-
-### 開発環境のセットアップ
-
-1. リポジトリのクローン
-```bash
-git clone https://github.com/shellme/esa-cli.git
-cd esa-cli
-```
-
-2. 依存関係のインストール
-```bash
-go mod download
-```
-
-3. Gitフックのセットアップ
-```bash
-./scripts/setup-git-hooks.sh
-```
-
-### コミットメッセージのテンプレート設定
-
-このプロジェクトでは、コミットメッセージのテンプレートを提供しています。
-以下のコマンドで設定できます：
+開発ルール、コミット規約、リリース手順は [CLAUDE.md](CLAUDE.md) にまとめています。
 
 ```bash
-# テンプレートの設定
-git config --local commit.template .git/commit-template.txt
-
-# 設定の確認
-git config --local commit.template
+go test ./...
+go build -o esa-cli ./cmd/esa-cli
 ```
-
-テンプレートには以下の情報が含まれています：
-- コミットメッセージの形式
-- 使用可能な絵文字と型の組み合わせ
-- 使用可能なスコープ
-- コミットメッセージの書き方の例
-- 言語に関する注意
-
-### コミットメッセージのルール
-
-コミットメッセージは以下の形式に従ってください：
-
-```
-<絵文字> <型>(<スコープ>): <タイトル>
-```
-
-#### 使用可能な絵文字と型の組み合わせ
-
-| 型 | 絵文字 | 説明 | 例 |
-|----|--------|------|-----|
-| feat | ✨ | 新機能の追加 | ✨ feat(cli): 新しいコマンドを追加 |
-| fix | 🐛 | バグ修正 | 🐛 fix(api): エラーメッセージの詳細化 |
-| docs | 📝 | ドキュメントの更新 | 📝 docs: READMEの更新 |
-| style | 🎨 | コードスタイルの修正 | 🎨 style: インデントの修正 |
-| refactor | ♻️ | リファクタリング | ♻️ refactor(internal): コードの整理 |
-| perf | 🚀 | パフォーマンス改善 | 🚀 perf(api): レスポンス時間の改善 |
-| test | 🧪 | テストの追加・修正 | 🧪 test: ユニットテストの追加 |
-| build | 🏗️ | ビルド関連の変更 | 🏗️ build: 依存関係の更新 |
-| ci | 🔧 | CI設定の変更 | 🔧 ci: GitHub Actionsの設定更新 |
-| chore | 📦 | その他の変更 | 📦 chore: パッケージの更新 |
-| revert | ⏪ | 変更の取り消し | ⏪ revert: 前回の変更を取り消し |
-
-#### 使用可能なスコープ
-
-- api: API関連
-- config: 設定関連
-- cli: CLI関連
-- cmd: コマンド関連
-- internal: 内部実装
-- pkg: パッケージ
-
-#### 注意事項
-
-- コミットメッセージは日本語で記述してください
-- タイトルは簡潔に、本文は必要に応じて詳細を記述してください
-- ルールに従わないコミットメッセージはGitフックによって拒否されます
-
-詳細なルールは [CLAUDE.md](CLAUDE.md) を参照してください。 

@@ -45,6 +45,4 @@ go build -o esa-cli ./cmd/esa-cli
 
 ## リリース
 
-1. `internal/version/version.go` を更新してコミットする（`🏗️ build: バージョンをx.y.zに更新`）
-2. `git tag -a vX.Y.Z -m "Release vX.Y.Z"` のあと `git push origin main --follow-tags`
-3. Releaseワークフロー、GitHub Release、`homebrew-esa-cli` のFormula更新を確認する
+`/release` スキルの手順に従う。
