@@ -29,6 +29,8 @@ type fakeEsa struct {
 	queries   []string
 	perPage   int
 	uploads   int
+	comments  []map[string]interface{}
+	posted    []string
 }
 
 func newFakeEsa() *fakeEsa {
@@ -53,6 +55,21 @@ func (f *fakeEsa) Do(req *http.Request) (*http.Response, error) {
 		f.uploads++
 		url := fmt.Sprintf("https://files.esa.io/uploads/%d.png", f.uploads)
 		return f.respond(201, map[string]interface{}{"attachment": map[string]interface{}{"url": url}}), nil
+	}
+	if strings.HasSuffix(req.URL.Path, "/comments") {
+		if req.Method == http.MethodPost {
+			var body struct {
+				Comment map[string]string `json:"comment"`
+			}
+			json.NewDecoder(req.Body).Decode(&body)
+			f.posted = append(f.posted, body.Comment["body_md"])
+			return f.respond(201, map[string]interface{}{}), nil
+		}
+		page, _ := strconv.Atoi(req.URL.Query().Get("page"))
+		if page == 1 && len(f.comments) > 1 {
+			return f.respond(200, map[string]interface{}{"comments": f.comments[:1], "next_page": 2}), nil
+		}
+		return f.respond(200, map[string]interface{}{"comments": f.comments[len(f.comments)-1:], "next_page": nil}), nil
 	}
 	if match := regexp.MustCompile(`/posts/(\d+)$`).FindStringSubmatch(req.URL.Path); match != nil {
 		number, _ := strconv.Atoi(match[1])
@@ -442,4 +459,68 @@ func TestBackupFile(t *testing.T) {
 	if content, _ := os.ReadFile(files[0]); string(content) != "local" {
 		t.Errorf("content = %s", content)
 	}
+}
+
+func TestComments(t *testing.T) {
+	t.Run("全ページのコメントを整形できる", func(t *testing.T) {
+		fake := newFakeEsa()
+		for _, body := range []string{"one", "two"} {
+			fake.comments = append(fake.comments, map[string]interface{}{
+				"body_md": body, "created_at": baseTime,
+				"created_by": map[string]string{"screen_name": "alice"},
+			})
+		}
+		client := api.NewClient("t", "token", fake)
+		comments, err := client.FetchComments(context.Background(), 1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		text := formatComments(comments)
+		if !strings.Contains(text, "コメント（2件）") || !strings.Contains(text, "### alice") || !strings.Contains(text, "two") {
+			t.Errorf("text = %s", text)
+		}
+	})
+
+	t.Run("コメントファイルは記事として扱わない", func(t *testing.T) {
+		chdirTemp(t)
+		os.WriteFile("1-p1.md", []byte("x"), 0644)
+		os.WriteFile("1-p1.comments.md", []byte("x"), 0644)
+		files, _ := findArticleFiles([]string{"*.md"})
+		existing, _ := existingArticles(1)
+		if len(files) != 1 || len(existing) != 1 || existing[0] != "1-p1.md" {
+			t.Errorf("files=%v existing=%v", files, existing)
+		}
+	})
+
+	t.Run("確認を拒否したら投稿しない", func(t *testing.T) {
+		fake := newFakeEsa()
+		fake.add(1, "src", true)
+		client := api.NewClient("t", "token", fake)
+		err := postComment(context.Background(), client, 1, "hello", false, never)
+		if !errors.Is(err, errUpdateCanceled) || len(fake.posted) != 0 {
+			t.Errorf("err=%v posted=%v", err, fake.posted)
+		}
+	})
+
+	t.Run("dry-runでは投稿しない", func(t *testing.T) {
+		fake := newFakeEsa()
+		fake.add(1, "src", true)
+		client := api.NewClient("t", "token", fake)
+		if err := postComment(context.Background(), client, 1, "hello", true, never); err != nil || len(fake.posted) != 0 {
+			t.Errorf("err=%v posted=%v", err, fake.posted)
+		}
+	})
+
+	t.Run("確認すれば投稿する", func(t *testing.T) {
+		fake := newFakeEsa()
+		fake.add(1, "src", true)
+		client := api.NewClient("t", "token", fake)
+		yes := func(string) bool { return true }
+		if err := postComment(context.Background(), client, 1, "hello", false, yes); err != nil {
+			t.Fatal(err)
+		}
+		if len(fake.posted) != 1 || fake.posted[0] != "hello" {
+			t.Errorf("posted=%v", fake.posted)
+		}
+	})
 }

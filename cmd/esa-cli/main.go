@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -63,6 +62,8 @@ func main() {
 	fetchCmd.StringVarP(&fetchUser, "user", "u", "", "作成者でフィルタリング")
 	fetchCmd.BoolVarP(&fetchLatest, "latest", "l", false, "最新の記事をダウンロード")
 	fetchCmd.BoolVarP(&fetchPrint, "print", "p", false, "ファイルに保存せず標準出力に表示")
+	var fetchComments bool
+	fetchCmd.BoolVar(&fetchComments, "comments", false, "コメントも取得")
 	fetchCmd.BoolVar(&fetchOverwrite, "overwrite", false, "既存のローカルファイルを上書き（元のファイルは.esa-cli-backupに保存）")
 
 	// updateコマンドのオプション
@@ -118,6 +119,15 @@ func main() {
 	updateAllCmd.BoolVarP(&updateAll.force, "force", "f", false, "一覧の確認なしで実行（競合時の確認は省略されません）")
 	updateAllCmd.BoolVar(&updateAll.dryRun, "dry-run", false, "更新せず各ファイルの状態と画像を表示")
 
+	// commentコマンドのオプション
+	commentCmd := pflag.NewFlagSet("comment", pflag.ExitOnError)
+	var commentText, commentFile string
+	var commentDryRun, commentForce bool
+	commentCmd.StringVarP(&commentText, "body", "b", "", "コメント本文")
+	commentCmd.StringVarP(&commentFile, "file", "f", "", "本文のファイル（-で標準入力）")
+	commentCmd.BoolVar(&commentDryRun, "dry-run", false, "投稿せず内容だけを表示")
+	commentCmd.BoolVar(&commentForce, "force", false, "確認なしで投稿")
+
 	// createコマンドのオプション
 	createCmd := pflag.NewFlagSet("create", pflag.ExitOnError)
 	var createTitle string
@@ -153,7 +163,7 @@ func main() {
 		runList(listCmd, category, tag, query, user)
 	case "fetch":
 		fetchCmd.Parse(os.Args[2:])
-		runFetch(fetchCmd, fetchCategory, fetchTag, fetchQuery, fetchUser, fetchLatest, fetchPrint, fetchOverwrite)
+		runFetch(fetchCmd, fetchCategory, fetchTag, fetchQuery, fetchUser, fetchLatest, fetchPrint, fetchOverwrite, fetchComments)
 	case "update":
 		updateCmd.Parse(os.Args[2:])
 		runUpdate(updateCmd, updateOptions{noWip, updateCategory, addTags, removeTags, message})
@@ -167,6 +177,9 @@ func main() {
 		updateAllCmd.Parse(os.Args[2:])
 		updateAll.patterns = updateAllCmd.Args()
 		runUpdateAll(updateAll)
+	case "comment":
+		commentCmd.Parse(os.Args[2:])
+		runComment(commentCmd, commentText, commentFile, commentDryRun, commentForce)
 	case "diff":
 		runDiff(os.Args[2:])
 	case "status":
@@ -203,6 +216,7 @@ func showHelp() {
 	fmt.Println("      -l, --latest              最新の記事をダウンロード")
 	fmt.Println("      -p, --print               ファイルに保存せず標準出力に表示")
 	fmt.Println("      --overwrite               既存のローカルファイルを上書き（元は.esa-cli-backupに保存）")
+	fmt.Println("      --comments                コメントも取得（-pなら続けて表示、それ以外は.comments.mdに保存）")
 	fmt.Println("  esa-cli update <ファイル名>    記事を更新（競合時は確認、ローカル画像は自動アップロード）")
 	fmt.Println("    オプション:")
 	fmt.Println("      -n, --no-wip              WIP状態を解除")
@@ -221,6 +235,12 @@ func showHelp() {
 	fmt.Println("      -n, --no-wip / -c, --category / -a, --add-tags / -r, --remove-tags / -m, --message")
 	fmt.Println("      -f, --force               一覧の確認なしで実行（競合時の確認は省略されません）")
 	fmt.Println("      --dry-run                 更新せず各ファイルの状態と画像を表示")
+	fmt.Println("  esa-cli comment <記事番号>     記事にコメントを投稿")
+	fmt.Println("    オプション:")
+	fmt.Println("      -b, --body <本文>          コメント本文")
+	fmt.Println("      -f, --file <ファイル>      本文のファイル（-で標準入力）")
+	fmt.Println("      --dry-run                 投稿せず内容だけを表示")
+	fmt.Println("      --force                   確認なしで投稿")
 	fmt.Println("  esa-cli diff <ファイル名>      ローカルとesaの差分を表示")
 	fmt.Println("  esa-cli status [パターン]      記事ファイルの状態を一覧表示（デフォルトは*.md）")
 	fmt.Println("  esa-cli move                  記事を一括移動（絞り込み条件が1つ以上必要）")
@@ -266,6 +286,8 @@ func showHelp() {
 	fmt.Println("  esa-cli update 123-title.md -m API仕様を更新  # メッセージを付けて更新")
 	fmt.Println("  esa-cli fetch-all -c 開発 --dry-run  # ダウンロード対象を確認")
 	fmt.Println("  esa-cli update-all \"123-*.md\" -m 一括更新  # パターンに一致する記事を更新")
+	fmt.Println("  esa-cli fetch 123 -p --comments  # 記事とコメントを標準出力に表示")
+	fmt.Println("  esa-cli comment 123 -f reply.md --dry-run  # 投稿内容を確認")
 	fmt.Println("  esa-cli diff 123-title.md       # esaとの差分を確認")
 	fmt.Println("  esa-cli status                  # 記事ファイルの状態を一覧表示")
 	fmt.Println("  esa-cli move -c 開発 -o デザイン -u 自分のユーザー名  # 一括移動")
@@ -276,7 +298,7 @@ func showHelp() {
 	fmt.Println("  esa-cli create \"下書き記事\" -T  # ローカルにテンプレートファイルのみ生成")
 	fmt.Println("  esa-cli create \"技術記事\" -c 技術/Go -g Go,技術記事 -T  # カテゴリ・タグ付きテンプレートを生成")
 	fmt.Println("")
-	fmt.Println("終了コード: 0=成功 / 1=エラー / 2=update・update-allを競合の確認などで中止")
+	fmt.Println("終了コード: 0=成功 / 1=エラー / 2=update・update-all・commentを確認で中止")
 	fmt.Println("")
 	fmt.Println("💡 初回利用時は 'esa-cli setup' で設定を行ってください")
 }
@@ -342,7 +364,7 @@ func runList(cmd *pflag.FlagSet, category, tag, query, user string) {
 	}
 }
 
-func runFetch(cmd *pflag.FlagSet, category, tag, query, user string, latest bool, printToStdout, overwrite bool) {
+func runFetch(cmd *pflag.FlagSet, category, tag, query, user string, latest bool, printToStdout, overwrite, comments bool) {
 	cfg, err := config.Load()
 	if err != nil {
 		fmt.Printf("❌ 設定の読み込みに失敗しました: %v\n", err)
@@ -412,7 +434,7 @@ func runFetch(cmd *pflag.FlagSet, category, tag, query, user string, latest bool
 			fmt.Printf("📥 最新記事をダウンロード中: [%d] %s\n", post.Number, post.FullName)
 		}
 		// 最新記事の番号で後続の処理を行う
-		fetchArticle(client, post.Number, printToStdout, overwrite)
+		fetchArticle(client, post.Number, printToStdout, overwrite, comments)
 		return
 	}
 
@@ -429,13 +451,13 @@ func runFetch(cmd *pflag.FlagSet, category, tag, query, user string, latest bool
 		os.Exit(1)
 	}
 
-	fetchArticle(client, postNumber, printToStdout, overwrite)
+	fetchArticle(client, postNumber, printToStdout, overwrite, comments)
 }
 
 // 記事を取得してファイルに書き込む共通関数
-func fetchArticle(client *api.Client, postNumber int, printToStdout, overwrite bool) {
+func fetchArticle(client *api.Client, postNumber int, printToStdout, overwrite, comments bool) {
 	if !printToStdout && !overwrite {
-		existing, err := filepath.Glob(fmt.Sprintf("%d-*.md", postNumber))
+		existing, err := existingArticles(postNumber)
 		if err == nil && len(existing) > 0 {
 			fmt.Fprintf(os.Stderr, "❌ ローカルファイルが既に存在します: %s\n", existing[0])
 			fmt.Fprintln(os.Stderr, "💡 上書きする場合は --overwrite を指定してください")
@@ -464,12 +486,25 @@ func fetchArticle(client *api.Client, postNumber int, printToStdout, overwrite b
 		os.Exit(1)
 	}
 
+	var commentText string
+	if comments {
+		list, err := client.FetchComments(context.Background(), postNumber)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "❌ コメントの取得に失敗しました: %v\n", err)
+			os.Exit(1)
+		}
+		commentText = formatComments(list)
+	}
+
 	if printToStdout {
 		// 標準出力にMarkdownコンテンツを出力
 		fmt.Print(string(content))
+		if comments {
+			fmt.Printf("\n---\n\n%s", commentText)
+		}
 	} else {
 		// ファイルに保存
-		if existing, _ := filepath.Glob(fmt.Sprintf("%d-*.md", postNumber)); len(existing) > 0 {
+		if existing, _ := existingArticles(postNumber); len(existing) > 0 {
 			if err := backupFile(existing[0]); err != nil {
 				fmt.Fprintf(os.Stderr, "❌ バックアップに失敗しました: %v\n", err)
 				os.Exit(1)
@@ -479,6 +514,15 @@ func fetchArticle(client *api.Client, postNumber int, printToStdout, overwrite b
 		if err := os.WriteFile(fileName, content, 0644); err != nil {
 			fmt.Fprintf(os.Stderr, "❌ ファイルの書き込みに失敗しました: %v\n", err)
 			os.Exit(1)
+		}
+
+		if comments {
+			commentFile := strings.TrimSuffix(fileName, ".md") + commentFileSuffix
+			if err := os.WriteFile(commentFile, []byte(commentText), 0644); err != nil {
+				fmt.Fprintf(os.Stderr, "❌ コメントの書き込みに失敗しました: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Printf("💬 コメントを保存しました: %s\n", commentFile)
 		}
 
 		fmt.Printf("✅ 記事をダウンロードしました: %s\n", fileName)
