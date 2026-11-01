@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -47,6 +48,8 @@ func main() {
 	listCmd.StringVarP(&tag, "tag", "t", "", "タグでフィルタリング")
 	listCmd.StringVarP(&query, "query", "q", "", "検索ワードでフィルタリング")
 	listCmd.StringVarP(&user, "user", "u", "", "作成者でフィルタリング")
+	var listJSON bool
+	listCmd.BoolVar(&listJSON, "json", false, "JSON形式で出力（本文は含まない）")
 
 	// fetchコマンドのオプション
 	var fetchCategory string
@@ -160,7 +163,7 @@ func main() {
 		runSetup()
 	case "list":
 		listCmd.Parse(os.Args[2:])
-		runList(listCmd, category, tag, query, user)
+		runList(listCmd, category, tag, query, user, listJSON)
 	case "fetch":
 		fetchCmd.Parse(os.Args[2:])
 		runFetch(fetchCmd, fetchCategory, fetchTag, fetchQuery, fetchUser, fetchLatest, fetchPrint, fetchOverwrite, fetchComments)
@@ -207,6 +210,7 @@ func showHelp() {
 	fmt.Println("      -t, --tag <タグ>          タグでフィルタリング")
 	fmt.Println("      -q, --query <検索ワード>   検索ワードでフィルタリング")
 	fmt.Println("      -u, --user <作成者>       作成者でフィルタリング")
+	fmt.Println("      --json                    JSON形式で出力（本文は含まない）")
 	fmt.Println("  esa-cli fetch <記事番号>       記事をダウンロード")
 	fmt.Println("    オプション:")
 	fmt.Println("      -c, --category <カテゴリ>  カテゴリでフィルタリング")
@@ -273,6 +277,7 @@ func showHelp() {
 	fmt.Println("  esa-cli list -t API             # APIタグの記事一覧")
 	fmt.Println("  esa-cli list -q 認証            # 認証を含む記事一覧")
 	fmt.Println("  esa-cli list -u 自分のユーザー名 # 自分が作成した記事一覧")
+	fmt.Println("  esa-cli list 50 -q \"wip:true\" --json  # esaの検索構文を使いJSONで出力")
 	fmt.Println("  esa-cli fetch 123              # 記事123をダウンロード")
 	fmt.Println("  esa-cli fetch 123 -p            # 記事123を標準出力に表示（ファイル保存なし）")
 	fmt.Println("  esa-cli fetch -c 開発 -l        # 開発カテゴリの最新記事をダウンロード")
@@ -312,7 +317,7 @@ func runSetup() {
 	}
 }
 
-func runList(cmd *pflag.FlagSet, category, tag, query, user string) {
+func runList(cmd *pflag.FlagSet, category, tag, query, user string, jsonOutput bool) {
 	limit := 10 // デフォルト値
 	if len(cmd.Args()) > 0 {
 		l, err := strconv.Atoi(cmd.Args()[0])
@@ -326,20 +331,22 @@ func runList(cmd *pflag.FlagSet, category, tag, query, user string) {
 	client := loadClient()
 
 	// 検索条件の表示
-	fmt.Println("🔍 記事を検索中...")
-	if category != "" {
-		fmt.Printf("   カテゴリ: %s\n", category)
+	if !jsonOutput {
+		fmt.Println("🔍 記事を検索中...")
+		if category != "" {
+			fmt.Printf("   カテゴリ: %s\n", category)
+		}
+		if tag != "" {
+			fmt.Printf("   タグ: %s\n", tag)
+		}
+		if user != "" {
+			fmt.Printf("   作成者: %s\n", user)
+		}
+		if query != "" {
+			fmt.Printf("   検索ワード: %s\n", query)
+		}
+		fmt.Println()
 	}
-	if tag != "" {
-		fmt.Printf("   タグ: %s\n", tag)
-	}
-	if user != "" {
-		fmt.Printf("   作成者: %s\n", user)
-	}
-	if query != "" {
-		fmt.Printf("   検索ワード: %s\n", query)
-	}
-	fmt.Println()
 
 	posts, total, err := client.ListAllPosts(context.Background(), api.ListPostsOptions{
 		Category: category,
@@ -352,6 +359,16 @@ func runList(cmd *pflag.FlagSet, category, tag, query, user string) {
 		os.Exit(1)
 	}
 
+	if jsonOutput {
+		data, err := listJSONOutput(posts, total)
+		if err != nil {
+			fmt.Printf("❌ エラー: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println(string(data))
+		return
+	}
+
 	// 記事一覧を表示
 	if len(posts) == 0 {
 		fmt.Println("📭 条件に一致する記事が見つかりませんでした。")
@@ -360,8 +377,34 @@ func runList(cmd *pflag.FlagSet, category, tag, query, user string) {
 
 	fmt.Printf("📋 記事一覧 (%d件 / 全%d件):\n", len(posts), total)
 	for _, post := range posts {
-		fmt.Printf("  [%d] %s\n", post.Number, post.FullName)
+		fmt.Println(formatListLine(post))
 	}
+}
+
+// 記事一覧の1行を整形する
+func formatListLine(post *types.Post) string {
+	wip := ""
+	if post.Wip {
+		wip = " [WIP]"
+	}
+	return fmt.Sprintf("  [%d]%s %s (%s)", post.Number, wip, post.FullName, post.UpdatedAt.Local().Format("2006-01-02 15:04"))
+}
+
+// 記事一覧をJSONに整形する
+func listJSONOutput(posts []*types.Post, total int) ([]byte, error) {
+	type item struct {
+		Number    int       `json:"number"`
+		FullName  string    `json:"full_name"`
+		Category  string    `json:"category"`
+		Tags      []string  `json:"tags"`
+		Wip       bool      `json:"wip"`
+		UpdatedAt time.Time `json:"updated_at"`
+	}
+	items := []item{}
+	for _, post := range posts {
+		items = append(items, item{post.Number, post.FullName, post.Category, post.Tags, post.Wip, post.UpdatedAt})
+	}
+	return json.MarshalIndent(map[string]interface{}{"total_count": total, "posts": items}, "", "  ")
 }
 
 func runFetch(cmd *pflag.FlagSet, category, tag, query, user string, latest bool, printToStdout, overwrite, comments bool) {
