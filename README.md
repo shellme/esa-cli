@@ -215,6 +215,24 @@ esa-cli status "123-*.md"
 
 `fetch --overwrite` と `fetch-all --overwrite` は、上書き前のファイルを `.esa-cli-backup/` に保存します。
 
+### 終了コード
+
+| コード | 意味 |
+|---|---|
+| 0 | 成功 |
+| 1 | エラー |
+| 2 | `update` / `update-all` を競合の確認などで中止 |
+
+入力のできない環境では、上書きの確認は「いいえ」として扱います。
+
+### Claude Codeから使う
+
+リポジトリの `skills/esa-cli` をスキルとして導入すると、Claudeが取得、差分確認、更新の流れに沿って操作します。
+
+```bash
+mkdir -p ~/.claude/skills && cp -R skills/esa-cli ~/.claude/skills/
+```
+
 ### 記事の一括移動
 
 ```bash
