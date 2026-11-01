@@ -8,8 +8,18 @@ esaの記事をローカルで作成・更新できるCLIツールです。
 
 - 記事の一覧表示
 - 記事のダウンロード（Markdown形式）
-- 記事の更新（ローカルのMarkdownファイルから）
+- 記事の作成・更新（ローカルのMarkdownファイルから）
+- 記事の一括ダウンロード・一括更新・一括移動
+- 更新時の競合チェック（esa側が先に更新されていたら上書き前に確認）
 - Front Matter形式でのメタデータ管理（タイトル、カテゴリ、タグ、WIP状態）
+
+## 公式ツールとの使い分け
+
+esa-cliは、記事をローカルのMarkdownファイルとして編集し、esaへ戻す作業に特化しています。
+
+- ローカルで編集する、複数の記事をまとめて扱う場合: esa-cli
+- コメント、添付ファイルなど、APIを1操作ずつ使う場合: 公式の [esa CLI](https://github.com/esaio/esa-cli)
+- AIアシスタントからesaを直接操作する場合: 公式の [esa MCP Server](https://github.com/esaio/esa-mcp-server)
 
 ## 必要条件
 
@@ -151,6 +161,33 @@ esa-cli update 123-article-title.md --add-tags API,認証
 esa-cli update 123-article-title.md -m API仕様を更新
 esa-cli update 123-article-title.md --message API仕様を更新
 ```
+
+### 記事の作成
+
+```bash
+# 記事を作成（デフォルトはWIP）
+esa-cli create "記事タイトル" -c 開発 -g API,認証
+
+# ローカルにテンプレートだけを作成
+esa-cli create "記事タイトル" -T
+
+# 編集したファイルから作成
+esa-cli create -f draft-記事タイトル.md
+```
+
+### 記事の一括ダウンロード・一括更新
+
+```bash
+# 対象を確認してから一括ダウンロード（既存ファイルはスキップ）
+esa-cli fetch-all -c 開発 --dry-run
+esa-cli fetch-all -c 開発
+
+# パターンに一致するファイルをまとめて更新
+esa-cli update-all "123-*.md" --dry-run
+esa-cli update-all "*.md" -m 一括更新
+```
+
+`--force` を付けても、競合時の確認は省略されません。
 
 ### 記事の一括移動
 
