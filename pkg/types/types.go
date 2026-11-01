@@ -20,14 +20,15 @@ type PostResponse struct {
 	Post
 }
 
-// UpdatePostBody is a struct for the body of a post to be updated
+// UpdatePostBody is a struct for the body of a post to be updated.
+// Pointer fields are left unchanged when nil, and can be set to empty values.
 type UpdatePostBody struct {
-	Name     string   `json:"name,omitempty"`
-	Category string   `json:"category,omitempty"`
-	Tags     []string `json:"tags,omitempty"`
-	BodyMd   string   `json:"body_md,omitempty"`
-	Wip      bool     `json:"wip"`
-	Message  string   `json:"message,omitempty"`
+	Name     string    `json:"name,omitempty"`
+	Category string    `json:"category,omitempty"`
+	Tags     *[]string `json:"tags,omitempty"`
+	BodyMd   *string   `json:"body_md,omitempty"`
+	Wip      *bool     `json:"wip,omitempty"`
+	Message  string    `json:"message,omitempty"`
 }
 
 // PostRequest is a struct for API request for updating a post

@@ -240,8 +240,8 @@ A: 現在のCLIでは記事の削除機能は実装されていません。削�
 ### Q: 記事の本文を一括で修正できますか？
 A: はい、`esa-cli update-all` コマンドを使用して複数の記事を一括更新できます。
 ```bash
-# 現在のディレクトリの全記事を一括更新
-esa-cli update-all
+# 対象ファイルを事前に確認
+esa-cli update-all "*.md" --dry-run
 
 # 特定パターンの記事を一括更新
 esa-cli update-all "123-*.md" --message 一括更新
@@ -255,6 +255,9 @@ esa-cli fetch-all -c 開発
 
 # タグの記事を一括ダウンロード（件数制限付き）
 esa-cli fetch-all -t API --limit 5
+
+# 既存のローカルファイルも上書き（デフォルトはスキップ）
+esa-cli fetch-all -c 開発 --overwrite
 ```
 
 ## 🛠️ トラブルシューティング

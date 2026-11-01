@@ -171,7 +171,7 @@ esa-cli list --category "特定カテゴリ" --user "自分のユーザー名"
 esa-cli list 10
 
 # バックグラウンド処理
-nohup esa-cli update-all --category "開発" > update.log 2>&1 &
+nohup esa-cli update-all "*.md" --category "開発" --force > update.log 2>&1 &
 ```
 
 ### ファイルシステムの問題

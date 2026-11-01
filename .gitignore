@@ -4,8 +4,8 @@
 *.dll
 *.so
 *.dylib
-esa-cli
-esa-cli-*
+/esa-cli
+/esa-cli-*
 
 # Test binary, built with `go test -c`
 *.test

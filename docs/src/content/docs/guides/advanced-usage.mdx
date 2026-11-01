@@ -49,15 +49,17 @@ import { Tabs, TabItem } from '@astrojs/starlight/components';
 複数の記事を一括で更新できます。
 
 ```bash
-# 現在のディレクトリの全記事を一括更新
-esa-cli update-all
+# 対象ファイルを事前に確認
+esa-cli update-all "*.md" --dry-run
 
 # 特定のパターンの記事を一括更新
 esa-cli update-all "123-*.md"
 
 # 確認なしで一括更新
-esa-cli update-all --force
+esa-cli update-all "*.md" --force
 ```
+
+ファイルパターンの指定は必須で、サブフォルダは対象外です。リモートの記事が更新されている場合は、`--force` でも上書きの確認が表示されます。
 
 ## 効率的な記事管理
 

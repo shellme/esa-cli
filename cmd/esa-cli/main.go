@@ -21,7 +21,7 @@ var (
 
 	// APIクライアント生成用の関数変数（テスト時に差し替え可能）
 	newAPIClient = func(team, token string) *api.Client {
-		return api.NewClient(team, token, http.DefaultClient)
+		return api.NewClient(team, token, &http.Client{Timeout: 60 * time.Second})
 	}
 )
 
@@ -90,6 +90,30 @@ func main() {
 	moveCmd.StringVarP(&moveToCategory, "to", "o", "", "移動先のカテゴリ（必須）")
 	moveCmd.StringVarP(&moveMessage, "message", "m", "", "移動メッセージ")
 	moveCmd.BoolVarP(&moveForce, "force", "f", false, "確認なしで実行")
+	var moveDryRun bool
+	moveCmd.BoolVar(&moveDryRun, "dry-run", false, "移動せず対象の記事だけを表示")
+
+	// fetch-allコマンドのオプション
+	fetchAllCmd := pflag.NewFlagSet("fetch-all", pflag.ExitOnError)
+	var fetchAll fetchAllOptions
+	fetchAllCmd.StringVarP(&fetchAll.category, "category", "c", "", "カテゴリでフィルタリング")
+	fetchAllCmd.StringVarP(&fetchAll.tag, "tag", "t", "", "タグでフィルタリング")
+	fetchAllCmd.StringVarP(&fetchAll.user, "user", "u", "", "作成者でフィルタリング")
+	fetchAllCmd.StringVarP(&fetchAll.query, "query", "q", "", "検索ワードでフィルタリング")
+	fetchAllCmd.IntVarP(&fetchAll.limit, "limit", "l", 100, "取得件数の上限（0で無制限）")
+	fetchAllCmd.BoolVar(&fetchAll.overwrite, "overwrite", false, "既存のローカルファイルを上書き")
+	fetchAllCmd.BoolVar(&fetchAll.dryRun, "dry-run", false, "保存せず対象の記事だけを表示")
+
+	// update-allコマンドのオプション
+	updateAllCmd := pflag.NewFlagSet("update-all", pflag.ExitOnError)
+	var updateAll updateAllOptions
+	updateAllCmd.BoolVarP(&updateAll.noWip, "no-wip", "n", false, "WIP状態を解除")
+	updateAllCmd.StringVarP(&updateAll.category, "category", "c", "", "カテゴリを変更")
+	updateAllCmd.StringVarP(&updateAll.addTags, "add-tags", "a", "", "タグを追加（カンマ区切り）")
+	updateAllCmd.StringVarP(&updateAll.removeTags, "remove-tags", "r", "", "タグを削除（カンマ区切り）")
+	updateAllCmd.StringVarP(&updateAll.message, "message", "m", "", "更新メッセージ")
+	updateAllCmd.BoolVarP(&updateAll.force, "force", "f", false, "一覧の確認なしで実行（競合時の確認は省略されません）")
+	updateAllCmd.BoolVar(&updateAll.dryRun, "dry-run", false, "更新せず対象のファイルだけを表示")
 
 	// createコマンドのオプション
 	createCmd := pflag.NewFlagSet("create", pflag.ExitOnError)
@@ -127,10 +151,17 @@ func main() {
 		runFetch(fetchCmd, fetchCategory, fetchTag, fetchQuery, fetchUser, fetchLatest, fetchPrint)
 	case "update":
 		updateCmd.Parse(os.Args[2:])
-		runUpdate(updateCmd, noWip, updateCategory, addTags, removeTags, message)
+		runUpdate(updateCmd, updateOptions{noWip, updateCategory, addTags, removeTags, message})
 	case "move":
 		moveCmd.Parse(os.Args[2:])
-		runMove(moveCmd, moveCategory, moveUser, moveQuery, moveTag, moveToCategory, moveMessage, moveForce)
+		runMove(moveCmd, moveCategory, moveUser, moveQuery, moveTag, moveToCategory, moveMessage, moveForce, moveDryRun)
+	case "fetch-all":
+		fetchAllCmd.Parse(os.Args[2:])
+		runFetchAll(fetchAll)
+	case "update-all":
+		updateAllCmd.Parse(os.Args[2:])
+		updateAll.patterns = updateAllCmd.Args()
+		runUpdateAll(updateAll)
 	case "create":
 		createCmd.Parse(os.Args[2:])
 		runCreate(createCmd, createTitle, createCategory, createTags, createMessage, createWip, createFile, createTemplate)
@@ -169,7 +200,18 @@ func showHelp() {
 	fmt.Println("      -a, --add-tags <タグ>     タグを追加（カンマ区切り）")
 	fmt.Println("      -r, --remove-tags <タグ>  タグを削除（カンマ区切り）")
 	fmt.Println("      -m, --message <メッセージ> 更新メッセージ")
-	fmt.Println("  esa-cli move                  記事を一括移動")
+	fmt.Println("  esa-cli fetch-all              記事を一括ダウンロード")
+	fmt.Println("    オプション:")
+	fmt.Println("      -c, --category / -t, --tag / -q, --query / -u, --user  フィルタリング")
+	fmt.Println("      -l, --limit <件数>         取得件数の上限（デフォルト100、0で無制限）")
+	fmt.Println("      --overwrite               既存のローカルファイルを上書き（デフォルトはスキップ）")
+	fmt.Println("      --dry-run                 保存せず対象の記事だけを表示")
+	fmt.Println("  esa-cli update-all <パターン>  ローカルファイルから記事を一括更新")
+	fmt.Println("    オプション:")
+	fmt.Println("      -n, --no-wip / -c, --category / -a, --add-tags / -r, --remove-tags / -m, --message")
+	fmt.Println("      -f, --force               一覧の確認なしで実行（競合時の確認は省略されません）")
+	fmt.Println("      --dry-run                 更新せず対象のファイルだけを表示")
+	fmt.Println("  esa-cli move                  記事を一括移動（絞り込み条件が1つ以上必要）")
 	fmt.Println("    オプション:")
 	fmt.Println("      -c, --category <移動元カテゴリ> 移動元のカテゴリ")
 	fmt.Println("      -u, --user <作成者>       作成者でフィルタリング")
@@ -178,6 +220,7 @@ func showHelp() {
 	fmt.Println("      -o, --to <移動先カテゴリ>  移動先のカテゴリ（必須）")
 	fmt.Println("      -m, --message <メッセージ> 移動メッセージ")
 	fmt.Println("      -f, --force               確認なしで実行")
+	fmt.Println("      --dry-run                 移動せず対象の記事だけを表示")
 	fmt.Println("  esa-cli create                 新しい記事を作成")
 	fmt.Println("    オプション:")
 	fmt.Println("      -t, --title <記事のタイトル>  記事のタイトル")
@@ -208,6 +251,8 @@ func showHelp() {
 	fmt.Println("  esa-cli update 123-title.md -c 開発  # カテゴリを変更して更新")
 	fmt.Println("  esa-cli update 123-title.md -a API,認証  # タグを追加して更新")
 	fmt.Println("  esa-cli update 123-title.md -m API仕様を更新  # メッセージを付けて更新")
+	fmt.Println("  esa-cli fetch-all -c 開発 --dry-run  # ダウンロード対象を確認")
+	fmt.Println("  esa-cli update-all \"123-*.md\" -m 一括更新  # パターンに一致する記事を更新")
 	fmt.Println("  esa-cli move -c 開発 -o デザイン -u 自分のユーザー名  # 一括移動")
 	fmt.Println("  esa-cli move -c 開発 -o デザイン -u 自分のユーザー名 -f  # 確認なしで移動")
 	fmt.Println("  esa-cli create \"新機能の説明\" -c 開発 -g API,新機能  # 新しい記事を作成")
@@ -283,7 +328,7 @@ func runList(cmd *pflag.FlagSet, category, tag, query, user string) {
 		// カテゴリフィルタリングのため、複数ページを取得（最大5ページ、500件まで）
 		// カテゴリパラメータは使わない（サブカテゴリも含めるため）
 		options.Category = ""
-		maxPages := 5 // 最大5ページまで
+		maxPages := 5  // 最大5ページまで
 		perPage := 100 // 最大値
 		for page := 1; page <= maxPages; page++ {
 			options.Page = page
@@ -471,239 +516,6 @@ func fetchArticle(client *api.Client, postNumber int, printToStdout bool) {
 		if len(post.Tags) > 0 {
 			fmt.Printf("🏷️  タグ: %s\n", strings.Join(post.Tags, ", "))
 		}
-	}
-}
-
-func runUpdate(cmd *pflag.FlagSet, noWip bool, category, addTags, removeTags, message string) {
-	if len(cmd.Args()) < 1 {
-		fmt.Println("❌ ファイル名を指定してください")
-		fmt.Println("💡 使用例: esa-cli update 123-title.md")
-		os.Exit(1)
-	}
-	fileName := cmd.Args()[0]
-
-	// ファイル名から記事番号を取得
-	postNumberStr := strings.Split(fileName, "-")[0]
-	postNumber, err := strconv.Atoi(postNumberStr)
-	if err != nil {
-		fmt.Printf("❌ 無効なファイル名です。'記事番号-タイトル.md'の形式である必要があります: %s\n", fileName)
-		os.Exit(1)
-	}
-
-	// ファイルを読み込む
-	content, err := os.ReadFile(fileName)
-	if err != nil {
-		fmt.Printf("❌ ファイルの読み込みに失敗しました: %v\n", err)
-		os.Exit(1)
-	}
-
-	fm, body, err := markdown.ParseContent(content)
-	if err != nil {
-		fmt.Printf("❌ ファイルの解析に失敗しました: %v\n", err)
-		os.Exit(1)
-	}
-
-	cfg, err := config.Load()
-	if err != nil {
-		fmt.Printf("❌ 設定の読み込みに失敗しました: %v\n", err)
-		os.Exit(1)
-	}
-	client := newAPIClient(cfg.TeamName, cfg.AccessToken)
-
-	// リモートの更新日時をチェック
-	if fm.RemoteUpdatedAt != "" {
-		remotePost, err := client.FetchPost(context.Background(), postNumber)
-		if err != nil {
-			// 記事が存在しない場合はチェックをスキップ
-			if !strings.Contains(err.Error(), "404") {
-				fmt.Printf("⚠️  リモート記事の取得に失敗しました: %v\n", err)
-			}
-		} else {
-			localUpdatedAt, _ := time.Parse(time.RFC3339, fm.RemoteUpdatedAt)
-			if remotePost.UpdatedAt.After(localUpdatedAt) {
-				fmt.Println("⚠️  警告: リモートの記事はローカルで編集を始めてから更新されています。")
-				fmt.Printf("  リモート: %s\n", remotePost.UpdatedAt.Local().Format("2006-01-02 15:04:05"))
-				fmt.Printf("  ローカル: %s\n", localUpdatedAt.Local().Format("2006-01-02 15:04:05"))
-				fmt.Print("このまま上書きしますか？ (y/N): ")
-
-				var confirm string
-				fmt.Scanln(&confirm)
-				if strings.ToLower(confirm) != "y" {
-					fmt.Println("🚫 更新を中止しました。")
-					os.Exit(0)
-				}
-			}
-		}
-	}
-
-	updateReq := types.UpdatePostBody{
-		Name:    fm.Title,
-		BodyMd:  body,
-		Message: message,
-		Wip:     fm.Wip,
-	}
-	if category != "" {
-		updateReq.Category = category
-	} else {
-		updateReq.Category = fm.Category
-	}
-
-	// タグの設定
-	tags := fm.Tags
-	if addTags != "" {
-		tags = append(tags, strings.Split(addTags, ",")...)
-	}
-	if removeTags != "" {
-		removeTagList := strings.Split(removeTags, ",")
-		for _, removeTag := range removeTagList {
-			removeTag = strings.TrimSpace(removeTag)
-			for i, tag := range tags {
-				if tag == removeTag {
-					tags = append(tags[:i], tags[i+1:]...)
-					break
-				}
-			}
-		}
-	}
-	updateReq.Tags = tags
-
-	// WIP状態の設定
-	if noWip {
-		updateReq.Wip = false
-	}
-
-	updatedPost, err := client.UpdatePost(context.Background(), postNumber, updateReq)
-	if err != nil {
-		fmt.Printf("❌ 記事の更新に失敗しました: %v\n", err)
-		os.Exit(1)
-	}
-
-	// ローカルファイルを更新後の内容で書き換える
-	newFm := types.FrontMatter{
-		Title:           updatedPost.Name,
-		Category:        updatedPost.Category,
-		Tags:            updatedPost.Tags,
-		Wip:             updatedPost.Wip,
-		RemoteUpdatedAt: updatedPost.UpdatedAt.Format(time.RFC3339),
-	}
-	newContent, err := markdown.GenerateContent(newFm, updatedPost.BodyMd)
-	if err != nil {
-		fmt.Printf("❌ ローカルファイルの更新に失敗しました: %v\n", err)
-		os.Exit(1)
-	}
-
-	if err := os.WriteFile(fileName, newContent, 0644); err != nil {
-		fmt.Printf("❌ ローカルファイルの書き込みに失敗しました: %v\n", err)
-		os.Exit(1)
-	}
-
-	fmt.Printf("✅ 記事を更新しました: %s\n", fileName)
-}
-
-func runMove(cmd *pflag.FlagSet, category, user, query, tag, toCategory, message string, force bool) {
-	// 移動先カテゴリの指定をチェック
-	if toCategory == "" {
-		fmt.Println("❌ エラー: 移動先のカテゴリを指定してください (--to オプション)")
-		fmt.Println("💡 例: esa-cli move --category 開発 --to デザイン --user 自分のユーザー名")
-		os.Exit(1)
-	}
-
-	// 設定の読み込み
-	cfg, err := config.Load()
-	if err != nil {
-		fmt.Printf("❌ 設定の読み込みに失敗しました: %v\n", err)
-		fmt.Println("💡 'esa-cli setup' で初期設定を行ってください")
-		os.Exit(1)
-	}
-
-	if cfg.AccessToken == "" || cfg.TeamName == "" {
-		fmt.Println("❌ 設定が完了していません")
-		fmt.Println("💡 'esa-cli setup' で初期設定を行ってください")
-		os.Exit(1)
-	}
-
-	client := newAPIClient(cfg.TeamName, cfg.AccessToken)
-
-	// 移動対象の記事を検索
-	// 注: 一括操作のため、最大100件（1ページ）までに制限
-	options := &api.ListPostsOptions{
-		Category: category,
-		Tag:      tag,
-		Query:    query,
-		User:     user,
-		Limit:    100, // 一度に100件まで取得
-		Page:     1,   // 1ページ目のみ
-	}
-
-	fmt.Printf("🔍 移動対象の記事を検索中...\n")
-	fmt.Printf("   カテゴリ: %s\n", category)
-	fmt.Printf("   作成者: %s\n", user)
-	fmt.Printf("   タグ: %s\n", tag)
-	fmt.Printf("   検索ワード: %s\n", query)
-	fmt.Printf("   ⚠️  注意: 最大100件まで取得します\n")
-
-	posts, err := client.ListPosts(context.Background(), options)
-	if err != nil {
-		fmt.Printf("❌ 記事の検索に失敗しました: %v\n", err)
-		os.Exit(1)
-	}
-
-	if len(posts) == 0 {
-		fmt.Println("⚠️  移動対象の記事が見つかりませんでした")
-		os.Exit(0)
-	}
-
-	if len(posts) >= 100 {
-		fmt.Printf("⚠️  警告: 100件以上の記事がありますが、最初の100件のみ処理します。\n")
-		fmt.Printf("   すべての記事を処理するには、条件を絞り込んでください。\n\n")
-	}
-
-	// 移動対象の記事一覧を表示
-	fmt.Printf("\n📋 移動対象の記事 (%d件):\n", len(posts))
-	for i, post := range posts {
-		fmt.Printf("  %d. [%d] %s (現在のカテゴリ: %s)\n", i+1, post.Number, post.FullName, post.Category)
-	}
-
-	// 移動先カテゴリを表示
-	fmt.Printf("\n🎯 移動先カテゴリ: %s\n", toCategory)
-
-	// 確認プロンプト（--forceが指定されていない場合）
-	if !force {
-		fmt.Printf("\n⚠️  上記の記事を移動しますか？ (y/N): ")
-		var response string
-		fmt.Scanln(&response)
-		if response != "y" && response != "Y" {
-			fmt.Println("❌ 移動をキャンセルしました")
-			os.Exit(0)
-		}
-	}
-
-	// 記事番号のリストを作成
-	var postNumbers []int
-	for _, post := range posts {
-		postNumbers = append(postNumbers, post.Number)
-	}
-
-	// 移動メッセージの設定
-	if message == "" {
-		message = fmt.Sprintf("カテゴリを %s から %s に一括移動", category, toCategory)
-	}
-
-	// 一括移動の実行
-	fmt.Printf("\n🚀 記事の移動を開始します...\n")
-	updatedPosts, err := client.BulkUpdateCategory(context.Background(), postNumbers, toCategory, message)
-	if err != nil {
-		fmt.Printf("❌ 記事の移動に失敗しました: %v\n", err)
-		os.Exit(1)
-	}
-
-	// 結果の表示
-	fmt.Printf("\n✅ 移動が完了しました！\n")
-	fmt.Printf("   移動した記事数: %d件\n", len(updatedPosts))
-	fmt.Printf("   移動先カテゴリ: %s\n", toCategory)
-
-	for _, post := range updatedPosts {
-		fmt.Printf("   ✅ [%d] %s\n", post.Number, post.FullName)
 	}
 }
 

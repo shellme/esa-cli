@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/shellme/esa-cli/pkg/types"
 )
@@ -22,6 +23,14 @@ type ListPostsOptions struct {
 	User     string
 	Limit    int // per_pageパラメータ（最大100）
 	Page     int // pageパラメータ（1から始まる）
+}
+
+const maxPerPage = 100
+
+type listResponse struct {
+	Posts      []*types.Post `json:"posts"`
+	NextPage   *int          `json:"next_page"`
+	TotalCount int           `json:"total_count"`
 }
 
 type HTTPDoer interface {
@@ -40,7 +49,7 @@ func NewClient(teamName, accessToken string, client HTTPDoer) *Client {
 	return &Client{
 		teamName:    teamName,
 		accessToken: accessToken,
-		client:      client,
+		client:      &retryDoer{inner: client, sleep: time.Sleep, now: time.Now},
 	}
 }
 
@@ -102,20 +111,64 @@ func (c *Client) makeRequest(method, path string, body io.Reader) (*http.Respons
 
 // ListPosts 記事一覧を取得
 func (c *Client) ListPosts(ctx context.Context, options *ListPostsOptions) ([]*types.Post, error) {
+	result, err := c.listPage(ctx, options)
+	if err != nil {
+		return nil, err
+	}
+	return result.Posts, nil
+}
+
+// ListAllPosts 全ページをたどって記事を取得し、取得件数とは別に該当総数も返す
+// maxPosts件に達したら取得を打ち切る（0以下は無制限）
+func (c *Client) ListAllPosts(ctx context.Context, options ListPostsOptions, maxPosts int) ([]*types.Post, int, error) {
+	options.Limit = maxPerPage
+	options.Page = 1
+
+	var posts []*types.Post
+	for {
+		result, err := c.listPage(ctx, &options)
+		if err != nil {
+			return nil, 0, err
+		}
+		posts = append(posts, result.Posts...)
+		if maxPosts > 0 && len(posts) >= maxPosts {
+			return posts[:maxPosts], result.TotalCount, nil
+		}
+		if result.NextPage == nil {
+			return posts, result.TotalCount, nil
+		}
+		options.Page = *result.NextPage
+	}
+}
+
+// InCategory 記事が指定カテゴリまたはそのサブカテゴリにあるかを判定
+func InCategory(post *types.Post, category string) bool {
+	return post.Category == category || strings.HasPrefix(post.Category, category+"/")
+}
+
+func categoryQuery(category string) string {
+	if strings.ContainsAny(category, " \t") {
+		return fmt.Sprintf("in:%q", category)
+	}
+	return "in:" + category
+}
+
+func (c *Client) listPage(ctx context.Context, options *ListPostsOptions) (*listResponse, error) {
 	baseURL := "https://api.esa.io/v1"
 	path := "/teams/" + c.teamName + "/posts"
 
 	// クエリパラメータを構築
 	queryParams := url.Values{}
 	if options != nil {
-		if options.Category != "" {
-			queryParams.Set("category", options.Category)
-		}
-		// タグ、ユーザー、クエリを組み合わせてqパラメータに設定
+		// カテゴリ、タグ、ユーザー、クエリを組み合わせてqパラメータに設定
 		// esa.ioのAPIでは:
+		// - カテゴリ検索は in:カテゴリ名 の形式（サブカテゴリを含む）
 		// - タグ検索は #タグ名 の形式
 		// - ユーザー検索は @ユーザー名 の形式
 		qParts := []string{}
+		if options.Category != "" {
+			qParts = append(qParts, categoryQuery(options.Category))
+		}
 		if options.Tag != "" {
 			qParts = append(qParts, "#"+options.Tag)
 		}
@@ -156,13 +209,11 @@ func (c *Client) ListPosts(ctx context.Context, options *ListPostsOptions) ([]*t
 		return nil, fmt.Errorf("API error: %s", resp.Status)
 	}
 
-	var result struct {
-		Posts []*types.Post `json:"posts"`
-	}
+	var result listResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, err
 	}
-	return result.Posts, nil
+	return &result, nil
 }
 
 // FetchPost 記事を取得
@@ -259,6 +310,7 @@ func (c *Client) BulkUpdateCategory(ctx context.Context, postNumbers []int, newC
 
 	for _, postNumber := range postNumbers {
 		post, err := c.UpdatePost(ctx, postNumber, types.UpdatePostBody{
+			// wipやtagsは送らず、カテゴリ以外の状態を変えない
 			Category: newCategory,
 			Message:  message,
 		})
