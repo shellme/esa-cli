@@ -63,7 +63,7 @@ func main() {
 	fetchCmd.StringVarP(&fetchUser, "user", "u", "", "作成者でフィルタリング")
 	fetchCmd.BoolVarP(&fetchLatest, "latest", "l", false, "最新の記事をダウンロード")
 	fetchCmd.BoolVarP(&fetchPrint, "print", "p", false, "ファイルに保存せず標準出力に表示")
-	fetchCmd.BoolVar(&fetchOverwrite, "overwrite", false, "既存のローカルファイルを上書き")
+	fetchCmd.BoolVar(&fetchOverwrite, "overwrite", false, "既存のローカルファイルを上書き（元のファイルは.esa-cli-backupに保存）")
 
 	// updateコマンドのオプション
 	var noWip bool
@@ -104,7 +104,7 @@ func main() {
 	fetchAllCmd.StringVarP(&fetchAll.user, "user", "u", "", "作成者でフィルタリング")
 	fetchAllCmd.StringVarP(&fetchAll.query, "query", "q", "", "検索ワードでフィルタリング")
 	fetchAllCmd.IntVarP(&fetchAll.limit, "limit", "l", 100, "取得件数の上限（0で無制限）")
-	fetchAllCmd.BoolVar(&fetchAll.overwrite, "overwrite", false, "既存のローカルファイルを上書き")
+	fetchAllCmd.BoolVar(&fetchAll.overwrite, "overwrite", false, "既存のローカルファイルを上書き（元のファイルは.esa-cli-backupに保存）")
 	fetchAllCmd.BoolVar(&fetchAll.dryRun, "dry-run", false, "保存せず対象の記事だけを表示")
 
 	// update-allコマンドのオプション
@@ -116,7 +116,7 @@ func main() {
 	updateAllCmd.StringVarP(&updateAll.removeTags, "remove-tags", "r", "", "タグを削除（カンマ区切り）")
 	updateAllCmd.StringVarP(&updateAll.message, "message", "m", "", "更新メッセージ")
 	updateAllCmd.BoolVarP(&updateAll.force, "force", "f", false, "一覧の確認なしで実行（競合時の確認は省略されません）")
-	updateAllCmd.BoolVar(&updateAll.dryRun, "dry-run", false, "更新せず対象のファイルだけを表示")
+	updateAllCmd.BoolVar(&updateAll.dryRun, "dry-run", false, "更新せず各ファイルの状態と画像を表示")
 
 	// createコマンドのオプション
 	createCmd := pflag.NewFlagSet("create", pflag.ExitOnError)
@@ -174,7 +174,7 @@ func main() {
 	case "create":
 		createCmd.Parse(os.Args[2:])
 		runCreate(createCmd, createTitle, createCategory, createTags, createMessage, createWip, createNoWip, createFile, createTemplate)
-	case "help":
+	case "help", "-h", "--help":
 		showHelp()
 	default:
 		fmt.Printf("不明なコマンド: %s\n", os.Args[1])
@@ -202,8 +202,8 @@ func showHelp() {
 	fmt.Println("      -u, --user <作成者>       作成者でフィルタリング")
 	fmt.Println("      -l, --latest              最新の記事をダウンロード")
 	fmt.Println("      -p, --print               ファイルに保存せず標準出力に表示")
-	fmt.Println("      --overwrite               既存のローカルファイルを上書き")
-	fmt.Println("  esa-cli update <ファイル名>    記事を更新")
+	fmt.Println("      --overwrite               既存のローカルファイルを上書き（元は.esa-cli-backupに保存）")
+	fmt.Println("  esa-cli update <ファイル名>    記事を更新（競合時は確認、ローカル画像は自動アップロード）")
 	fmt.Println("    オプション:")
 	fmt.Println("      -n, --no-wip              WIP状態を解除")
 	fmt.Println("      -c, --category <カテゴリ>  カテゴリを変更")
@@ -214,13 +214,13 @@ func showHelp() {
 	fmt.Println("    オプション:")
 	fmt.Println("      -c, --category / -t, --tag / -q, --query / -u, --user  フィルタリング")
 	fmt.Println("      -l, --limit <件数>         取得件数の上限（デフォルト100、0で無制限）")
-	fmt.Println("      --overwrite               既存のローカルファイルを上書き（デフォルトはスキップ）")
+	fmt.Println("      --overwrite               既存のファイルを上書き（デフォルトはスキップ、元は.esa-cli-backupに保存）")
 	fmt.Println("      --dry-run                 保存せず対象の記事だけを表示")
-	fmt.Println("  esa-cli update-all <パターン>  ローカルファイルから記事を一括更新")
+	fmt.Println("  esa-cli update-all <パターン>  ローカルファイルから記事を一括更新（ローカル画像は自動アップロード）")
 	fmt.Println("    オプション:")
 	fmt.Println("      -n, --no-wip / -c, --category / -a, --add-tags / -r, --remove-tags / -m, --message")
 	fmt.Println("      -f, --force               一覧の確認なしで実行（競合時の確認は省略されません）")
-	fmt.Println("      --dry-run                 更新せず対象のファイルだけを表示")
+	fmt.Println("      --dry-run                 更新せず各ファイルの状態と画像を表示")
 	fmt.Println("  esa-cli diff <ファイル名>      ローカルとesaの差分を表示")
 	fmt.Println("  esa-cli status [パターン]      記事ファイルの状態を一覧表示（デフォルトは*.md）")
 	fmt.Println("  esa-cli move                  記事を一括移動（絞り込み条件が1つ以上必要）")
@@ -241,7 +241,7 @@ func showHelp() {
 	fmt.Println("      -m, --message <作成メッセージ> 作成メッセージ")
 	fmt.Println("      -w, --wip                 WIP状態で作成（デフォルト）")
 	fmt.Println("      --no-wip                  公開状態で作成")
-	fmt.Println("      -f, --file <既存のMarkdownファイル> 既存のMarkdownファイルから作成")
+	fmt.Println("      -f, --file <既存のMarkdownファイル> 既存のMarkdownファイルから作成（ローカル画像は自動アップロード）")
 	fmt.Println("      -T, --template            ローカルにテンプレートファイルのみ生成（esa.ioにアップロードしない）")
 	fmt.Println("  esa-cli version                バージョン表示")
 	fmt.Println("  esa-cli help                   このヘルプを表示")
@@ -266,6 +266,8 @@ func showHelp() {
 	fmt.Println("  esa-cli update 123-title.md -m API仕様を更新  # メッセージを付けて更新")
 	fmt.Println("  esa-cli fetch-all -c 開発 --dry-run  # ダウンロード対象を確認")
 	fmt.Println("  esa-cli update-all \"123-*.md\" -m 一括更新  # パターンに一致する記事を更新")
+	fmt.Println("  esa-cli diff 123-title.md       # esaとの差分を確認")
+	fmt.Println("  esa-cli status                  # 記事ファイルの状態を一覧表示")
 	fmt.Println("  esa-cli move -c 開発 -o デザイン -u 自分のユーザー名  # 一括移動")
 	fmt.Println("  esa-cli move -c 開発 -o デザイン -u 自分のユーザー名 -f  # 確認なしで移動")
 	fmt.Println("  esa-cli create \"新機能の説明\" -c 開発 -g API,新機能  # 新しい記事を作成")
@@ -273,6 +275,8 @@ func showHelp() {
 	fmt.Println("  esa-cli create -f draft.md -c 開発/ドキュメント  # 既存ファイルから記事を作成")
 	fmt.Println("  esa-cli create \"下書き記事\" -T  # ローカルにテンプレートファイルのみ生成")
 	fmt.Println("  esa-cli create \"技術記事\" -c 技術/Go -g Go,技術記事 -T  # カテゴリ・タグ付きテンプレートを生成")
+	fmt.Println("")
+	fmt.Println("終了コード: 0=成功 / 1=エラー / 2=update・update-allを競合の確認などで中止")
 	fmt.Println("")
 	fmt.Println("💡 初回利用時は 'esa-cli setup' で設定を行ってください")
 }
