@@ -22,6 +22,8 @@ import (
 
 const moveLimit = 100 // 一度に移動できる記事数の上限
 
+const commentFileSuffix = ".comments.md"
+
 const exitCanceled = 2 // 競合の確認などで中止したときの終了コード
 
 var (
@@ -83,10 +85,25 @@ func confirmPrompt(prompt string) bool {
 	return strings.ToLower(answer) == "y"
 }
 
+// 記事番号に対応するローカルの記事ファイルを探す（コメントファイルは除く）
+func existingArticles(postNumber int) ([]string, error) {
+	matches, err := filepath.Glob(fmt.Sprintf("%d-*.md", postNumber))
+	if err != nil {
+		return nil, err
+	}
+	var files []string
+	for _, match := range matches {
+		if !strings.HasSuffix(match, commentFileSuffix) {
+			files = append(files, match)
+		}
+	}
+	return files, nil
+}
+
 // ファイル名から記事番号を取得
 func articleNumber(path string) (int, error) {
 	match := articleFilePattern.FindStringSubmatch(filepath.Base(path))
-	if match == nil {
+	if match == nil || strings.HasSuffix(path, commentFileSuffix) {
 		return 0, fmt.Errorf("無効なファイル名です。'記事番号-タイトル.md'の形式である必要があります: %s", path)
 	}
 	return strconv.Atoi(match[1])
@@ -288,7 +305,7 @@ func fetchAllPosts(ctx context.Context, client *api.Client, opts fetchAllOptions
 
 	saved, skipped, failed := 0, 0, 0
 	for _, post := range posts {
-		existing, err := filepath.Glob(fmt.Sprintf("%d-*.md", post.Number))
+		existing, err := existingArticles(post.Number)
 		if err != nil {
 			return failed, err
 		}

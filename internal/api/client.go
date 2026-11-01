@@ -298,6 +298,72 @@ func (c *Client) CreatePost(ctx context.Context, post types.CreatePostBody) (*ty
 	return &createdPost, nil
 }
 
+// Comment 記事のコメント
+type Comment struct {
+	BodyMd    string    `json:"body_md"`
+	CreatedAt time.Time `json:"created_at"`
+	CreatedBy struct {
+		ScreenName string `json:"screen_name"`
+	} `json:"created_by"`
+}
+
+// FetchComments 記事のコメントを古い順にすべて取得する
+func (c *Client) FetchComments(ctx context.Context, postNumber int) ([]*Comment, error) {
+	var comments []*Comment
+	for page := 1; ; {
+		apiURL := fmt.Sprintf("https://api.esa.io/v1/teams/%s/posts/%d/comments?page=%d&per_page=%d&sort=created&order=asc", c.teamName, postNumber, page, maxPerPage)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("Authorization", "Bearer "+c.accessToken)
+
+		resp, err := c.client.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("API request failed: %w", err)
+		}
+		var result struct {
+			Comments []*Comment `json:"comments"`
+			NextPage *int       `json:"next_page"`
+		}
+		if resp.StatusCode == http.StatusOK {
+			err = json.NewDecoder(resp.Body).Decode(&result)
+		} else {
+			err = fmt.Errorf("API returned status: %s", resp.Status)
+		}
+		resp.Body.Close()
+		if err != nil {
+			return nil, err
+		}
+
+		comments = append(comments, result.Comments...)
+		if result.NextPage == nil {
+			return comments, nil
+		}
+		page = *result.NextPage
+	}
+}
+
+// CreateComment 記事にコメントを投稿する
+func (c *Client) CreateComment(ctx context.Context, postNumber int, body string) error {
+	jsonBody, err := json.Marshal(map[string]interface{}{"comment": map[string]string{"body_md": body}})
+	if err != nil {
+		return fmt.Errorf("failed to marshal request body: %w", err)
+	}
+
+	path := fmt.Sprintf("/teams/%s/posts/%d/comments", c.teamName, postNumber)
+	resp, err := c.makeRequest(http.MethodPost, path, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return fmt.Errorf("API request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		return fmt.Errorf("API returned status: %s", resp.Status)
+	}
+	return nil
+}
+
 // UploadAttachment ファイルをアップロードし、記事に貼れるURLを返す
 func (c *Client) UploadAttachment(ctx context.Context, path string) (string, error) {
 	data, err := os.ReadFile(path)
