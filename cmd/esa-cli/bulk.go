@@ -114,22 +114,29 @@ func updateFile(ctx context.Context, client *api.Client, path string, opts updat
 	}
 
 	// リモートの更新日時をチェック（確認できないときは上書きしない）
+	var localUpdatedAt time.Time
 	if fm.RemoteUpdatedAt != "" {
-		localUpdatedAt, err := time.Parse(time.RFC3339, fm.RemoteUpdatedAt)
+		localUpdatedAt, err = time.Parse(time.RFC3339, fm.RemoteUpdatedAt)
 		if err != nil {
 			return fmt.Errorf("remote_updated_atの形式が不正です: %w", err)
 		}
-		remotePost, err := client.FetchPost(ctx, postNumber)
-		if err != nil {
-			return fmt.Errorf("リモート記事の確認に失敗したため更新を中止しました: %w", err)
+	}
+	remotePost, err := client.FetchPost(ctx, postNumber)
+	if err != nil {
+		return fmt.Errorf("リモート記事の確認に失敗したため更新を中止しました: %w", err)
+	}
+	if fm.RemoteUpdatedAt == "" {
+		fmt.Println("⚠️  警告: remote_updated_atがないため、リモートの記事との競合を確認できません。")
+		fmt.Printf("  リモート: %s\n", remotePost.UpdatedAt.Local().Format("2006-01-02 15:04:05"))
+		if !confirm("このまま上書きしますか？ (y/N): ") {
+			return errUpdateCanceled
 		}
-		if remotePost.UpdatedAt.After(localUpdatedAt) {
-			fmt.Println("⚠️  警告: リモートの記事はローカルで編集を始めてから更新されています。")
-			fmt.Printf("  リモート: %s\n", remotePost.UpdatedAt.Local().Format("2006-01-02 15:04:05"))
-			fmt.Printf("  ローカル: %s\n", localUpdatedAt.Local().Format("2006-01-02 15:04:05"))
-			if !confirm("このまま上書きしますか？ (y/N): ") {
-				return errUpdateCanceled
-			}
+	} else if remotePost.UpdatedAt.After(localUpdatedAt) {
+		fmt.Println("⚠️  警告: リモートの記事はローカルで編集を始めてから更新されています。")
+		fmt.Printf("  リモート: %s\n", remotePost.UpdatedAt.Local().Format("2006-01-02 15:04:05"))
+		fmt.Printf("  ローカル: %s\n", localUpdatedAt.Local().Format("2006-01-02 15:04:05"))
+		if !confirm("このまま上書きしますか？ (y/N): ") {
+			return errUpdateCanceled
 		}
 	}
 

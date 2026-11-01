@@ -52,10 +52,15 @@ title: 記事のタイトル
 category: カテゴリ
 tags: [tag1, tag2]
 wip: false
+remote_updated_at: "2025-06-21T09:32:41+09:00"
 ---
 
 記事の本文...
 ```
+
+<Aside type="caution" title="競合の確認">
+`remote_updated_at`より後にesa.io側の記事が更新されている場合や、`remote_updated_at`がなく競合を確認できない場合は、上書きしてよいか確認します。リモートの記事を確認できないときは更新を中止します。
+</Aside>
 
 ## 使用例
 

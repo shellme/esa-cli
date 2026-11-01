@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -187,6 +188,38 @@ func TestUpdateFile(t *testing.T) {
 		failed := updateAllFiles(context.Background(), client, []string{"1-p1.md"}, updateOptions{}, never)
 		if failed != 0 || len(fake.patches) != 0 {
 			t.Errorf("failed=%d patches=%d", failed, len(fake.patches))
+		}
+	})
+
+	t.Run("remote_updated_atがなく確認を拒否したら更新しない", func(t *testing.T) {
+		chdirTemp(t)
+		fake := newFakeEsa()
+		fake.add(1, "src", true)
+		client := api.NewClient("t", "token", fake)
+		os.WriteFile("1-p1.md", []byte("---\ntitle: p1\ncategory: src\nwip: true\n---\n\n"), 0644)
+
+		err := updateFile(context.Background(), client, "1-p1.md", updateOptions{}, never)
+		if !errors.Is(err, errUpdateCanceled) {
+			t.Fatalf("err = %v", err)
+		}
+		if len(fake.patches) != 0 {
+			t.Error("更新してはいけない")
+		}
+	})
+
+	t.Run("remote_updated_atがなくても確認すれば更新できる", func(t *testing.T) {
+		chdirTemp(t)
+		fake := newFakeEsa()
+		fake.add(1, "src", true)
+		client := api.NewClient("t", "token", fake)
+		os.WriteFile("1-p1.md", []byte("---\ntitle: p1\ncategory: src\nwip: true\n---\n\n"), 0644)
+
+		yes := func(string) bool { return true }
+		if err := updateFile(context.Background(), client, "1-p1.md", updateOptions{}, yes); err != nil {
+			t.Fatal(err)
+		}
+		if len(fake.patches) != 1 {
+			t.Errorf("patches=%d", len(fake.patches))
 		}
 	})
 
