@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/shellme/esa-cli/internal/api"
+	"github.com/shellme/esa-cli/pkg/types"
 )
 
 var baseTime = time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -521,6 +522,31 @@ func TestComments(t *testing.T) {
 		}
 		if len(fake.posted) != 1 || fake.posted[0] != "hello" {
 			t.Errorf("posted=%v", fake.posted)
+		}
+	})
+}
+
+func TestListOutput(t *testing.T) {
+	post := &types.Post{Number: 1, FullName: "dev/p1", Wip: true, UpdatedAt: baseTime, BodyMd: "secret"}
+
+	t.Run("一覧の行に番号とWIPと更新日を含める", func(t *testing.T) {
+		line := formatListLine(post)
+		if !strings.Contains(line, "[1] [WIP] dev/p1") || !strings.Contains(line, "2026-01-01") {
+			t.Errorf("line = %s", line)
+		}
+	})
+
+	t.Run("JSONに本文を含めず0件は空配列にする", func(t *testing.T) {
+		data, err := listJSONOutput([]*types.Post{post}, 5)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(string(data), "secret") || !strings.Contains(string(data), `"total_count": 5`) {
+			t.Errorf("data = %s", data)
+		}
+		empty, _ := listJSONOutput(nil, 0)
+		if !strings.Contains(string(empty), `"posts": []`) {
+			t.Errorf("empty = %s", empty)
 		}
 	})
 }
