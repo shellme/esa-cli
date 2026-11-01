@@ -98,6 +98,16 @@ esa-cli list --query 認証
 # 作成者でフィルタリング
 esa-cli list -u 自分のユーザー名
 esa-cli list --user 自分のユーザー名
+
+# JSON形式で出力（本文は含まない）
+esa-cli list 50 --json
+```
+
+`-q` にはesaの検索構文をそのまま書けます。`list` で確認した条件は、`fetch-all` にも同じ形で渡せます。
+
+```bash
+esa-cli list 50 -q "wip:true"
+esa-cli fetch-all -q "wip:true" --dry-run
 ```
 
 ### 記事のダウンロード
