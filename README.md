@@ -2,8 +2,6 @@
 
 esaの記事をローカルで作成・更新できるCLIツールです。
 
-📚 [オンラインドキュメント](https://shellme.github.io/esa-cli/)
-
 ## 機能
 
 - 記事の一覧表示
@@ -23,7 +21,7 @@ esa-cliは、記事をローカルのMarkdownファイルとして編集し、es
 
 ## 必要条件
 
-- Go 1.16以上
+- Go 1.21以上（ソースからビルドする場合）
 - esaのアカウントとアクセストークン
 
 ## インストール方法
@@ -37,7 +35,7 @@ brew install esa-cli
 
 ### 方法2: ソースコードからビルド
 
-1. Go 1.16以上をインストール
+1. Go 1.21以上をインストール
 2. リポジトリをクローン
 ```bash
 git clone https://github.com/shellme/esa-cli.git
@@ -45,7 +43,7 @@ cd esa-cli
 ```
 3. ビルド
 ```bash
-go build -o esa-cli
+go build -o esa-cli ./cmd/esa-cli
 ```
 4. ビルドしたバイナリをパスの通ったディレクトリに移動
 ```bash
@@ -119,6 +117,15 @@ esa-cli fetch --tag API --latest
 # 作成者の最新記事をダウンロード
 esa-cli fetch -u 自分のユーザー名 -l
 esa-cli fetch --user 自分のユーザー名 --latest
+
+# 検索ワードに一致する最新記事をダウンロード
+esa-cli fetch -q 認証 -l
+
+# ファイルに保存せず標準出力に表示
+esa-cli fetch 123 --print
+
+# 既存のローカルファイルを上書き
+esa-cli fetch 123 --overwrite
 ```
 
 ダウンロードされたファイルは以下の形式で保存されます：
@@ -157,6 +164,10 @@ esa-cli update 123-article-title.md --category 開発
 esa-cli update 123-article-title.md -a API,認証
 esa-cli update 123-article-title.md --add-tags API,認証
 
+# タグを削除して更新
+esa-cli update 123-article-title.md -r API
+esa-cli update 123-article-title.md --remove-tags API
+
 # メッセージを付けて更新
 esa-cli update 123-article-title.md -m API仕様を更新
 esa-cli update 123-article-title.md --message API仕様を更新
@@ -173,6 +184,9 @@ esa-cli create "記事タイトル" -T
 
 # 編集したファイルから作成
 esa-cli create -f draft-記事タイトル.md
+
+# 公開状態で作成
+esa-cli create "記事タイトル" --no-wip
 ```
 
 ### ローカル画像の自動アップロード
@@ -239,6 +253,9 @@ mkdir -p ~/.claude/skills && cp -R skills/esa-cli ~/.claude/skills/
 # 特定のカテゴリで自分が作成した記事を一括移動
 esa-cli move -c 開発 -o デザイン -u 自分のユーザー名
 esa-cli move --category 開発 --to デザイン --user 自分のユーザー名
+
+# 移動せず対象の記事だけを表示
+esa-cli move -c 開発 -o デザイン -u 自分のユーザー名 --dry-run
 
 # 確認なしで強制実行
 esa-cli move -c 開発 -o デザイン -u 自分のユーザー名 -f
@@ -363,6 +380,8 @@ MIT License
 
 ## 開発者向け
 
+開発ルールとリリース手順は [CLAUDE.md](CLAUDE.md) にまとめています。
+
 ### 開発環境のセットアップ
 
 1. リポジトリのクローン
@@ -440,4 +459,4 @@ git config --local commit.template
 - タイトルは簡潔に、本文は必要に応じて詳細を記述してください
 - ルールに従わないコミットメッセージはGitフックによって拒否されます
 
-詳細なルールは [.cursor/rules/commit-message.mdc](.cursor/rules/commit-message.mdc) を参照してください。 
+詳細なルールは [CLAUDE.md](CLAUDE.md) を参照してください。 
