@@ -201,7 +201,7 @@ esa-cli create "記事タイトル" --no-wip
 
 ### ローカル画像の自動アップロード
 
-`update`、`update-all`、`create -f` は、本文の `![説明](./images/a.png)` のようなローカル画像をesaへアップロードし、URLに置き換えます。ローカルファイルも書き換わります。
+`update`、`update-all`、`create -f` は、本文の `![説明](./images/a.png)` や `<img src="./images/a.png" width="600">` のようなローカル画像をesaへアップロードし、URLに置き換えます。ローカルファイルも書き換わります。`<img>` タグの `width` などの属性はそのまま残るので、大きい画像の表示サイズを指定したいときに使えます。
 
 - 対象: png / jpg / jpeg / gif / webp / svg（URLとコード内の記述は対象外）
 - パスは記事ファイルからの相対パスで指定します

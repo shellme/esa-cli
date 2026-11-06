@@ -222,6 +222,25 @@ func TestReplaceLocalImagesKeepsOtherText(t *testing.T) {
 	}
 }
 
+func TestLocalImagesInImgTag(t *testing.T) {
+	body := "<img src=\"./a.png\" width=\"600\">\n<IMG width='300' src='b.jpg' />\n" +
+		"<img src=\"https://example.com/c.png\">\n`<img src=\"d.png\">`\n```\n<img src=\"e.png\">\n```\n" +
+		"![f](f.png) <img src=\"g.gif\" alt=\"g\">"
+	got := strings.Join(LocalImages(body), ",")
+	if got != "./a.png,b.jpg,f.png,g.gif" {
+		t.Errorf("images = %s", got)
+	}
+}
+
+func TestReplaceLocalImagesKeepsImgTagAttributes(t *testing.T) {
+	body := "<img alt=\"設定画面\" src=\"./a.png\" width=\"600\">\n"
+	got := ReplaceLocalImages(body, func(string) string { return "https://x/a.png" })
+	want := "<img alt=\"設定画面\" src=\"https://x/a.png\" width=\"600\">\n"
+	if got != want {
+		t.Errorf("got %q", got)
+	}
+}
+
 func TestImageFilePath(t *testing.T) {
 	if got := ImageFilePath("dir/1-a.md", "img/a%20b.png"); got != "dir/img/a b.png" {
 		t.Errorf("got %s", got)
